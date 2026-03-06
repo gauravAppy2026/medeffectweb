@@ -149,11 +149,11 @@ function OrderDetailsModal({ order, onClose, onAction }) {
 
         {order.status === 'submitted' || order.status === 'pending' ? (
           <>
-            <p className="text-[12px] font-medium text-[#0f172a] mb-2">Reason</p>
+            <p className="text-[12px] font-medium text-[#0f172a] mb-2">Note</p>
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Rejection reason (if rejecting)..."
+              placeholder="Add a note..."
               className="w-full h-[80px] border border-[#e2e8f0] rounded-[10px] px-4 py-3 text-xs text-[#0f172a] placeholder:text-[#97a3b6] resize-none focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff] mb-5"
             />
             <div className="flex items-center justify-center gap-3">
@@ -175,19 +175,16 @@ function OrderDetailsModal({ order, onClose, onAction }) {
           </>
         ) : (
           (() => {
-            const note = order.rejectionReason
-              || (order.statusHistory || []).slice().reverse().find((h) => h.note)?.note
-              || '';
+            const latestNote = (order.statusHistory || []).slice().reverse().find(
+              (h) => h.note && !h.note.startsWith('Status changed to') && h.note !== 'Order created'
+            )?.note;
+            const note = order.rejectionReason || latestNote || '';
             return note ? (
               <div className="mb-2">
                 <p className="text-[10px] font-semibold text-[#64748b] uppercase tracking-wider mb-2">
-                  {order.status === 'rejected' ? 'Rejection Reason' : 'Note'}
+                  Note
                 </p>
-                <div className={`rounded-[10px] px-4 py-3 text-xs font-medium ${
-                  order.status === 'rejected'
-                    ? 'bg-red-50 border border-red-200 text-[#d93235]'
-                    : 'bg-[#f0f9ff] border border-[#bae0ff] text-[#0f172a]'
-                }`}>
+                <div className="rounded-[10px] px-4 py-3 text-xs font-medium bg-[#f0f9ff] border border-[#bae0ff] text-[#0f172a]">
                   {note}
                 </div>
               </div>
