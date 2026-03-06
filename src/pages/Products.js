@@ -1,8 +1,62 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import PageHeader from '../components/PageHeader';
 import PrimaryButton from '../components/PrimaryButton';
 import SearchBar from '../components/SearchBar';
 import productService from '../services/productService';
+
+/* ─── 3-dot Actions Dropdown with Edit/Delete ─── */
+function ActionsDropdown({ onEdit, onDelete }) {
+  const [open, setOpen] = useState(false);
+  const [dropUp, setDropUp] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const handleToggle = () => {
+    if (!open && ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setDropUp(spaceBelow < 120);
+    }
+    setOpen(!open);
+  };
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={handleToggle}
+        className="w-6 h-6 flex items-center justify-center hover:bg-gray-100 rounded"
+      >
+        <span className="material-symbols-outlined text-[#64748b] text-[20px]">more_vert</span>
+      </button>
+
+      {open && (
+        <div className={`absolute right-0 ${dropUp ? 'bottom-full mb-1' : 'top-full mt-1'} bg-white border border-[#e2e8f0] rounded-[8px] shadow-lg w-[110px] z-30 py-1`}>
+          <button
+            onClick={() => { setOpen(false); onEdit(); }}
+            className="flex items-center gap-2.5 px-3 py-2 w-full hover:bg-gray-50 text-xs font-medium text-[#64748b]"
+          >
+            <span className="material-symbols-outlined text-[16px] text-[#64748b]">edit</span>
+            Edit
+          </button>
+          <button
+            onClick={() => { setOpen(false); onDelete(); }}
+            className="flex items-center gap-2.5 px-3 py-2 w-full hover:bg-gray-50 text-xs font-medium text-[#64748b]"
+          >
+            <span className="material-symbols-outlined text-[16px] text-[#64748b]">delete</span>
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ─── Add/Edit Product Form ─── */
 function ProductForm({ onCancel, onSave, initialData }) {
@@ -136,6 +190,7 @@ export default function Products() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -155,6 +210,16 @@ export default function Products() {
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  const handleDelete = async (product) => {
+    try {
+      await productService.deleteProduct(product._id);
+      setDeleteConfirm(null);
+      fetchProducts();
+    } catch (err) {
+      console.error('Failed to delete product:', err);
+    }
+  };
 
   if (showForm || editProduct) {
     return (
@@ -202,15 +267,39 @@ export default function Products() {
                   <span className="text-xs font-medium text-[#0f172a]">{p.category}</span>
                   <span className="text-xs font-medium text-[#0f172a]">${typeof p.price === 'number' ? p.price.toFixed(2) : p.price}</span>
                   <span className="text-xs font-medium text-[#0f172a]">{p.stock}</span>
-                  <button
-                    onClick={() => setEditProduct(p)}
-                    className="w-6 h-6 flex items-center justify-center hover:bg-gray-100 rounded"
-                  >
-                    <span className="material-symbols-outlined text-[#64748b] text-[20px]">more_vert</span>
-                  </button>
+                  <ActionsDropdown
+                    onEdit={() => setEditProduct(p)}
+                    onDelete={() => setDeleteConfirm(p)}
+                  />
                 </div>
               ))
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-[400px] shadow-xl">
+            <h3 className="text-base font-semibold text-[#24315d] mb-2">Delete Product</h3>
+            <p className="text-sm text-[#64748b] mb-6">
+              Are you sure you want to delete <span className="font-medium text-[#24315d]">{deleteConfirm.name}</span>? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="h-[40px] px-5 border border-[#e2e8f0] rounded-lg text-sm font-medium text-[#64748b] hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(deleteConfirm)}
+                className="h-[40px] px-5 bg-[#f23e41] text-white text-sm font-medium rounded-lg hover:bg-[#d93336]"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}
