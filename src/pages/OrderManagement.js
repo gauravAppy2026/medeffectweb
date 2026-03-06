@@ -173,7 +173,27 @@ function OrderDetailsModal({ order, onClose, onAction }) {
               </button>
             </div>
           </>
-        ) : null}
+        ) : (
+          (() => {
+            const note = order.rejectionReason
+              || (order.statusHistory || []).slice().reverse().find((h) => h.note)?.note
+              || '';
+            return note ? (
+              <div className="mb-2">
+                <p className="text-[10px] font-semibold text-[#64748b] uppercase tracking-wider mb-2">
+                  {order.status === 'rejected' ? 'Rejection Reason' : 'Note'}
+                </p>
+                <div className={`rounded-[10px] px-4 py-3 text-xs font-medium ${
+                  order.status === 'rejected'
+                    ? 'bg-red-50 border border-red-200 text-[#d93235]'
+                    : 'bg-[#f0f9ff] border border-[#bae0ff] text-[#0f172a]'
+                }`}>
+                  {note}
+                </div>
+              </div>
+            ) : null;
+          })()
+        )}
       </div>
     </div>
   );
