@@ -13,6 +13,7 @@ const statusConfig = {
 /* ─── 3-dot Actions Dropdown with status change ─── */
 function ActionsDropdown({ currentStatus, onStatusChange }) {
   const [open, setOpen] = useState(false);
+  const [dropUp, setDropUp] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
@@ -27,17 +28,26 @@ function ActionsDropdown({ currentStatus, onStatusChange }) {
     ([key]) => key !== currentStatus
   );
 
+  const handleToggle = () => {
+    if (!open && ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setDropUp(spaceBelow < 180);
+    }
+    setOpen(!open);
+  };
+
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={handleToggle}
         className="w-6 h-6 flex items-center justify-center hover:bg-gray-100 rounded"
       >
         <span className="material-symbols-outlined text-[#64748b] text-[20px]">more_vert</span>
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 bg-white border border-[#e2e8f0] rounded-lg shadow-lg w-[170px] z-30 py-1">
+        <div className={`absolute right-0 ${dropUp ? 'bottom-full mb-1' : 'top-full mt-1'} bg-white border border-[#e2e8f0] rounded-lg shadow-lg w-[170px] z-30 py-1`}>
           <p className="px-3 py-1.5 text-[10px] font-semibold text-[#64748b] uppercase tracking-wider">
             Change Status
           </p>

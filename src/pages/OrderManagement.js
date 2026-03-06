@@ -10,6 +10,7 @@ const tabs = ['All', 'Pending', 'Approved', 'Shipped', 'Delivered'];
 /* ─── 3-dot Actions Dropdown ─── */
 function ActionsDropdown({ onView }) {
   const [open, setOpen] = useState(false);
+  const [dropUp, setDropUp] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
@@ -20,17 +21,26 @@ function ActionsDropdown({ onView }) {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
+  const handleToggle = () => {
+    if (!open && ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setDropUp(spaceBelow < 80);
+    }
+    setOpen(!open);
+  };
+
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={handleToggle}
         className="w-6 h-6 flex items-center justify-center hover:bg-gray-100 rounded"
       >
         <span className="material-symbols-outlined text-[#64748b] text-[20px]">more_vert</span>
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 bg-white border border-[#e2e8f0] rounded-lg shadow-lg w-[120px] z-30 py-1">
+        <div className={`absolute right-0 ${dropUp ? 'bottom-full mb-1' : 'top-full mt-1'} bg-white border border-[#e2e8f0] rounded-lg shadow-lg w-[120px] z-30 py-1`}>
           <button
             onClick={() => { setOpen(false); onView(); }}
             className="flex items-center gap-2.5 px-3 py-2 w-full hover:bg-gray-50 text-xs font-medium text-[#0f172a]"
