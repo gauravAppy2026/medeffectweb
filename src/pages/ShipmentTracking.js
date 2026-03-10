@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import PageHeader from '../components/PageHeader';
 import PrimaryButton from '../components/PrimaryButton';
 import shipmentService from '../services/shipmentService';
@@ -10,44 +11,66 @@ const statusConfig = {
   delivered: { label: 'Delivered', bg: 'bg-[#defced]', text: 'text-[#007a55]' },
 };
 
-/* ─── 3-dot Actions Dropdown with status change ─── */
+/* ─── 3-dot Actions Dropdown with status change (portal-based) ─── */
 function ActionsDropdown({ currentStatus, onStatusChange }) {
   const [open, setOpen] = useState(false);
-  const [dropUp, setDropUp] = useState(false);
-  const ref = useRef(null);
+  const [pos, setPos] = useState({ top: 0, left: 0, dropUp: false });
+  const btnRef = useRef(null);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     function handleClick(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      if (
+        btnRef.current && !btnRef.current.contains(e.target) &&
+        menuRef.current && !menuRef.current.contains(e.target)
+      ) {
+        setOpen(false);
+      }
     }
-    document.addEventListener('mousedown', handleClick);
+    if (open) document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
+  }, [open]);
 
   const statusOptions = Object.entries(statusConfig).filter(
     ([key]) => key !== currentStatus
   );
 
   const handleToggle = () => {
-    if (!open && ref.current) {
-      const rect = ref.current.getBoundingClientRect();
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
-      setDropUp(spaceBelow < 180);
+      const dropUp = spaceBelow < 180;
+      setPos({
+        top: dropUp ? rect.top + window.scrollY : rect.bottom + window.scrollY + 4,
+        left: rect.right - 170,
+        dropUp,
+      });
     }
     setOpen(!open);
   };
 
   return (
-    <div className="relative" ref={ref}>
+    <div>
       <button
+        ref={btnRef}
         onClick={handleToggle}
         className="w-6 h-6 flex items-center justify-center hover:bg-gray-100 rounded"
       >
         <span className="material-symbols-outlined text-[#64748b] text-[20px]">more_vert</span>
       </button>
 
-      {open && (
-        <div className={`absolute right-0 ${dropUp ? 'bottom-full mb-1' : 'top-full mt-1'} bg-white border border-[#e2e8f0] rounded-lg shadow-lg w-[170px] z-30 py-1`}>
+      {open && ReactDOM.createPortal(
+        <div
+          ref={menuRef}
+          style={{
+            position: 'absolute',
+            top: pos.dropUp ? undefined : pos.top,
+            bottom: pos.dropUp ? `${window.innerHeight - pos.top + 4}px` : undefined,
+            left: pos.left,
+            zIndex: 9999,
+          }}
+          className="bg-white border border-[#e2e8f0] rounded-lg shadow-lg w-[170px] py-1"
+        >
           <p className="px-3 py-1.5 text-[10px] font-semibold text-[#64748b] uppercase tracking-wider">
             Change Status
           </p>
@@ -67,7 +90,8 @@ function ActionsDropdown({ currentStatus, onStatusChange }) {
               </span>
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -246,7 +270,7 @@ export default function ShipmentTracking() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0089ff]" />
         </div>
       ) : (
-        <div className="bg-white border border-[#e2e8f0] rounded-[14px] shadow-sm">
+        <div className="bg-white border border-[#e2e8f0] rounded-[14px] shadow-sm overflow-hidden">
           <div className="bg-[rgba(226,232,240,0.2)] border-b border-[#e2e8f0] rounded-t-[14px]">
             <div className="grid grid-cols-[1.2fr_1.5fr_0.8fr_0.6fr] px-8 py-4">
               {['ORDER ID', 'TRACKING ID', 'STATUS', 'ACTIONS'].map((col) => (
@@ -257,7 +281,7 @@ export default function ShipmentTracking() {
             </div>
           </div>
 
-          <div className="divide-y divide-[#e2e8f0] rounded-b-[14px] overflow-hidden">
+          <div className="divide-y divide-[#e2e8f0]">
             {shipments.length === 0 ? (
               <div className="px-8 py-8 text-center text-sm text-[#64748b]">No shipments found</div>
             ) : (
