@@ -138,6 +138,7 @@ function IVRDetailsModal({ record, onClose, onAction }) {
   const [approvalStep, setApprovalStep] = useState('initial');
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [adminNote, setAdminNote] = useState('');
 
   useEffect(() => {
     if (record) {
@@ -158,7 +159,9 @@ function IVRDetailsModal({ record, onClose, onAction }) {
   const handleReject = async () => {
     setActionLoading(true);
     try {
-      await ivrService.updateIVR(record._id, { status: 'rejected' });
+      const rejectPayload = { status: 'rejected' };
+      if (adminNote.trim()) rejectPayload.note = adminNote.trim();
+      await ivrService.updateIVR(record._id, rejectPayload);
       onAction();
       onClose();
     } catch (err) {
@@ -183,6 +186,7 @@ function IVRDetailsModal({ record, onClose, onAction }) {
       }
       const payload = { status: 'approved' };
       if (approvalDocument) payload.approvalDocument = approvalDocument;
+      if (adminNote.trim()) payload.note = adminNote.trim();
       await ivrService.updateIVR(record._id, payload);
       setApprovalStep('confirmed');
       onAction();
@@ -292,7 +296,11 @@ function IVRDetailsModal({ record, onClose, onAction }) {
           <p className="text-[12px] font-semibold text-[#64748b] uppercase tracking-wider mb-3">
             Insurance Details
           </p>
-          <div className="grid grid-cols-3 gap-4 mb-5">
+          <div className="grid grid-cols-2 gap-4 mb-5">
+            <div>
+              <p className="text-[12px] font-medium text-[#64748b] mb-1">Medicare ID</p>
+              <p className="text-[14px] font-medium text-[#0f172a]">{record.insurance?.medicareId || 'N/A'}</p>
+            </div>
             <div>
               <p className="text-[12px] font-medium text-[#64748b] mb-1">Insurance Name</p>
               <p className="text-[14px] font-medium text-[#0f172a]">{record.insurance?.insuranceName || 'N/A'}</p>
@@ -307,22 +315,57 @@ function IVRDetailsModal({ record, onClose, onAction }) {
             </div>
           </div>
 
-          <p className="text-[12px] font-medium text-[#64748b] mb-2">Comments</p>
-          <div className="w-full min-h-[100px] border border-[#d6dce8] rounded-[8px] px-4 py-3 text-[14px] text-[#24315d] mb-5">
+          <p className="text-[12px] font-medium text-[#64748b] mb-2">Patient Comments</p>
+          <div className="w-full min-h-[60px] border border-[#d6dce8] rounded-[8px] px-4 py-3 text-[14px] text-[#24315d] mb-5">
             {record.comment || 'No comments'}
           </div>
+
+          {/* Admin Note - editable for pending, read-only for processed */}
+          {record.status === 'pending' ? (
+            <>
+              <p className="text-[12px] font-medium text-[#0f172a] mb-2">Admin Note</p>
+              <textarea
+                value={adminNote}
+                onChange={(e) => setAdminNote(e.target.value)}
+                placeholder="Add a note (optional)..."
+                className="w-full h-[70px] border border-[#d6dce8] rounded-[8px] px-4 py-3 text-[13px] text-[#0f172a] placeholder:text-[#97a3b6] resize-none focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff] mb-5"
+              />
+            </>
+          ) : record.adminNote ? (
+            <>
+              <p className="text-[12px] font-medium text-[#64748b] mb-2">Admin Note</p>
+              <div className="w-full min-h-[40px] border border-[#d6dce8] rounded-[8px] px-4 py-3 text-[14px] text-[#24315d] mb-5 bg-[#f9fafc]">
+                {record.adminNote}
+              </div>
+            </>
+          ) : null}
 
           {record.documents && record.documents.length > 0 && (
             <>
               <p className="text-[12px] font-semibold text-[#64748b] uppercase tracking-wider mb-3">
                 Attached Documents
               </p>
-              <div className="flex items-end gap-2">
-                {record.documents.map((doc, i) => (
-                  <div key={i} className="w-[41px] h-[50px] flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[#f23e41] text-[40px]">picture_as_pdf</span>
-                  </div>
-                ))}
+              <div className="flex flex-wrap gap-3">
+                {record.documents.map((doc, i) => {
+                  const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(doc);
+                  return (
+                    <a
+                      key={i}
+                      href={doc}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col items-center gap-1 p-2 border border-[#e2e8f0] rounded-[8px] hover:bg-gray-50 transition-colors cursor-pointer"
+                      title="Click to open"
+                    >
+                      {isImage ? (
+                        <img src={doc} alt={`Doc ${i + 1}`} className="w-[50px] h-[50px] object-cover rounded" />
+                      ) : (
+                        <span className="material-symbols-outlined text-[#f23e41] text-[36px]">picture_as_pdf</span>
+                      )}
+                      <span className="text-[10px] text-[#64748b]">Doc {i + 1}</span>
+                    </a>
+                  );
+                })}
               </div>
             </>
           )}

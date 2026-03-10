@@ -248,7 +248,7 @@ export default function ShipmentTracking() {
       ) : (
         <div className="bg-white border border-[#e2e8f0] rounded-[14px] shadow-sm overflow-hidden">
           <div className="bg-[rgba(226,232,240,0.2)] border-b border-[#e2e8f0] rounded-t-[14px]">
-            <div className="grid grid-cols-[1.2fr_1.5fr_0.8fr_0.4fr] px-8 py-4">
+            <div className="grid grid-cols-[1.2fr_1.5fr_0.8fr_0.6fr] px-8 py-4">
               {['ORDER ID', 'TRACKING ID', 'STATUS', 'ACTIONS'].map((col) => (
                 <span key={col} className="text-xs font-semibold text-[#64748b] uppercase">
                   {col}
@@ -267,7 +267,7 @@ export default function ShipmentTracking() {
                 return (
                   <div
                     key={shipment._id}
-                    className="grid grid-cols-[1.2fr_1.5fr_0.8fr_0.4fr] px-8 py-4 items-center hover:bg-gray-50/50 transition-colors"
+                    className="grid grid-cols-[1.2fr_1.5fr_0.8fr_0.6fr] px-8 py-4 items-center hover:bg-gray-50/50 transition-colors"
                   >
                     <span className="text-xs font-medium text-[#0f172a]">{orderId}</span>
 

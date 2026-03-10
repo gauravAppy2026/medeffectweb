@@ -5,7 +5,7 @@ import IconButton from '../components/IconButton';
 import StatusBadge from '../components/StatusBadge';
 import orderService from '../services/orderService';
 
-const tabs = ['All', 'Pending', 'Approved', 'Shipped', 'Delivered'];
+const tabs = ['All', 'Pending', 'Approved', 'Shipped', 'Rejected'];
 
 /* ─── 3-dot Actions Dropdown ─── */
 function ActionsDropdown({ onView }) {
@@ -56,7 +56,8 @@ function ActionsDropdown({ onView }) {
 
 /* ─── Order Details Modal ─── */
 function OrderDetailsModal({ order, onClose, onAction }) {
-  const [reason, setReason] = useState('');
+  const [note, setNote] = useState('');
+  const [trackingNumber, setTrackingNumber] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
   if (!order) return null;
@@ -70,16 +71,38 @@ function OrderDetailsModal({ order, onClose, onAction }) {
     .map((n) => n[0] || '')
     .join('');
 
-  const handleAction = async (status) => {
+  const handleStatusAction = async (status) => {
     setActionLoading(true);
     try {
       const payload = { status };
-      if (status === 'rejected' && reason.trim()) {
-        payload.rejectionReason = reason.trim();
+      if (status === 'rejected' && note.trim()) {
+        payload.rejectionReason = note.trim();
       }
-      if (reason.trim()) {
-        payload.note = reason.trim();
+      if (note.trim()) {
+        payload.note = note.trim();
       }
+      await orderService.updateOrder(order._id, payload);
+      onAction();
+      onClose();
+    } catch (err) {
+      alert(err.response?.data?.error || err.response?.data?.message || 'Action failed');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleShip = async () => {
+    if (!trackingNumber.trim()) {
+      alert('Please enter a tracking number');
+      return;
+    }
+    setActionLoading(true);
+    try {
+      // Save tracking number first
+      await orderService.updateTracking(order._id, trackingNumber.trim());
+      // Then update status to shipped
+      const payload = { status: 'shipped' };
+      if (note.trim()) payload.note = note.trim();
       await orderService.updateOrder(order._id, payload);
       onAction();
       onClose();
@@ -94,10 +117,21 @@ function OrderDetailsModal({ order, onClose, onAction }) {
     ? new Date(order.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
     : 'N/A';
 
+  const isSubmitted = order.status === 'submitted' || order.status === 'pending';
+  const isApproved = order.status === 'approved';
+
+  // Get existing note for read-only display
+  const existingNote = (() => {
+    const latestNote = (order.statusHistory || []).slice().reverse().find(
+      (h) => h.note && !h.note.startsWith('Status changed to') && h.note !== 'Order created'
+    )?.note;
+    return order.rejectionReason || latestNote || '';
+  })();
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-[14px] shadow-xl w-[340px] p-6 z-10">
+      <div className="relative bg-white rounded-[14px] shadow-xl w-[380px] max-h-[90vh] overflow-y-auto p-6 z-10">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-semibold text-[#0f172a]">Order Details</h2>
           <button
@@ -117,20 +151,32 @@ function OrderDetailsModal({ order, onClose, onAction }) {
           <span className="text-xs font-medium text-[#64748b] capitalize">Normal Priority</span>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 mb-5">
-          <div>
-            <p className="text-[10px] font-medium text-[#64748b] mb-0.5">Product Name</p>
-            <p className="text-xs font-semibold text-[#0f172a]">{order.product?.name || 'N/A'}</p>
-          </div>
-          <div>
-            <p className="text-[10px] font-medium text-[#64748b] mb-0.5">Quantity</p>
-            <p className="text-xs font-semibold text-[#0f172a]">{order.quantity}</p>
-          </div>
-          <div>
-            <p className="text-[10px] font-medium text-[#64748b] mb-0.5">Order Date</p>
+        <div className="mb-5">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-medium text-[#64748b]">Order Date</p>
             <p className="text-xs font-semibold text-[#0f172a]">{orderDate}</p>
           </div>
+          <p className="text-[10px] font-semibold text-[#64748b] uppercase tracking-wider mb-2">Products</p>
+          {(order.lineItems && order.lineItems.length > 0 ? order.lineItems : [{ product: order.product, quantity: order.quantity }]).map((item, idx) => (
+            <div key={idx} className={`flex items-center justify-between py-2 ${idx > 0 ? 'border-t border-[#f0f2f5]' : ''}`}>
+              <div>
+                <p className="text-xs font-semibold text-[#0f172a]">{item.product?.name || 'N/A'}</p>
+                <p className="text-[10px] text-[#64748b]">Qty: {item.quantity}</p>
+              </div>
+              {item.product?.price && (
+                <p className="text-xs font-semibold text-[#0089ff]">${item.product.price}</p>
+              )}
+            </div>
+          ))}
         </div>
+
+        {/* Tracking number display for shipped orders */}
+        {order.trackingNumber && (
+          <div className="mb-5">
+            <p className="text-[10px] font-medium text-[#64748b] mb-0.5">Tracking Number</p>
+            <p className="text-xs font-semibold text-[#0089ff]">{order.trackingNumber}</p>
+          </div>
+        )}
 
         <div className="h-px bg-[#e2e8f0] mb-4" />
 
@@ -147,49 +193,74 @@ function OrderDetailsModal({ order, onClose, onAction }) {
           </div>
         </div>
 
-        {order.status === 'submitted' || order.status === 'pending' ? (
+        {/* Step 1: Pending/Submitted — Approve or Reject */}
+        {isSubmitted && (
           <>
             <p className="text-[12px] font-medium text-[#0f172a] mb-2">Note</p>
             <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
               placeholder="Add a note..."
               className="w-full h-[80px] border border-[#e2e8f0] rounded-[10px] px-4 py-3 text-xs text-[#0f172a] placeholder:text-[#97a3b6] resize-none focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff] mb-5"
             />
             <div className="flex items-center justify-center gap-3">
               <button
-                onClick={() => handleAction('rejected')}
+                onClick={() => handleStatusAction('rejected')}
                 disabled={actionLoading}
                 className="h-[42px] px-5 bg-[#f23e41] text-white text-sm font-semibold rounded-[10px] hover:bg-[#d93235] transition-colors disabled:opacity-50"
               >
-                Reject Order
+                Reject
               </button>
               <button
-                onClick={() => handleAction('approved')}
+                onClick={() => handleStatusAction('approved')}
                 disabled={actionLoading}
                 className="h-[42px] px-5 bg-[#0089ff] text-white text-sm font-semibold rounded-[10px] hover:bg-[#0077e6] transition-colors disabled:opacity-50"
               >
-                Approve & Ship
+                Approve
               </button>
             </div>
           </>
-        ) : (
-          (() => {
-            const latestNote = (order.statusHistory || []).slice().reverse().find(
-              (h) => h.note && !h.note.startsWith('Status changed to') && h.note !== 'Order created'
-            )?.note;
-            const note = order.rejectionReason || latestNote || '';
-            return note ? (
-              <div className="mb-2">
-                <p className="text-[10px] font-semibold text-[#64748b] uppercase tracking-wider mb-2">
-                  Note
-                </p>
-                <div className="rounded-[10px] px-4 py-3 text-xs font-medium bg-[#f0f9ff] border border-[#bae0ff] text-[#0f172a]">
-                  {note}
-                </div>
-              </div>
-            ) : null;
-          })()
+        )}
+
+        {/* Step 2: Approved — Ship with tracking number */}
+        {isApproved && (
+          <>
+            <p className="text-[12px] font-medium text-[#0f172a] mb-2">Tracking Number</p>
+            <input
+              value={trackingNumber}
+              onChange={(e) => setTrackingNumber(e.target.value)}
+              placeholder="Enter tracking number..."
+              className="w-full h-[42px] border border-[#e2e8f0] rounded-[10px] px-4 text-xs text-[#0f172a] placeholder:text-[#97a3b6] focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff] mb-4"
+            />
+            <p className="text-[12px] font-medium text-[#0f172a] mb-2">Note</p>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Add a shipping note..."
+              className="w-full h-[80px] border border-[#e2e8f0] rounded-[10px] px-4 py-3 text-xs text-[#0f172a] placeholder:text-[#97a3b6] resize-none focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff] mb-5"
+            />
+            <div className="flex items-center justify-center">
+              <button
+                onClick={handleShip}
+                disabled={actionLoading}
+                className="h-[42px] px-8 bg-[#10b981] text-white text-sm font-semibold rounded-[10px] hover:bg-[#059669] transition-colors disabled:opacity-50"
+              >
+                Ship Order
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Read-only note for processed orders */}
+        {!isSubmitted && !isApproved && existingNote && (
+          <div className="mb-2">
+            <p className="text-[10px] font-semibold text-[#64748b] uppercase tracking-wider mb-2">
+              Note
+            </p>
+            <div className="rounded-[10px] px-4 py-3 text-xs font-medium bg-[#f0f9ff] border border-[#bae0ff] text-[#0f172a]">
+              {existingNote}
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -307,9 +378,17 @@ export default function OrderManagement() {
                     className="grid grid-cols-[1fr_1.2fr_1fr_0.6fr_0.7fr_1fr_0.5fr] px-5 py-4 items-center hover:bg-gray-50/50 transition-colors"
                   >
                     <span className="text-xs font-medium text-[#0f172a]">{order.orderId}</span>
-                    <span className="text-xs font-medium text-[#0f172a]">{order.product?.name || 'N/A'}</span>
+                    <span className="text-xs font-medium text-[#0f172a]">{
+                      (order.lineItems && order.lineItems.length > 0)
+                        ? order.lineItems.map((li) => li.product?.name || 'N/A').join(', ')
+                        : (order.product?.name || 'N/A')
+                    }</span>
                     <span className="text-xs font-medium text-[#0f172a]">{salesRepName}</span>
-                    <span className="text-xs font-medium text-[#0f172a]">{order.quantity}</span>
+                    <span className="text-xs font-medium text-[#0f172a]">{
+                      (order.lineItems && order.lineItems.length > 0)
+                        ? order.lineItems.reduce((sum, li) => sum + (li.quantity || 0), 0)
+                        : order.quantity
+                    }</span>
                     <StatusBadge status={order.status} />
                     <span className="text-xs font-medium text-[#0f172a]">{date}</span>
                     <ActionsDropdown onView={() => setSelectedOrder(order)} />
