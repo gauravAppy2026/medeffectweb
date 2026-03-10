@@ -60,6 +60,15 @@ function OrderDetailsModal({ order, onClose, onAction }) {
   const [trackingNumber, setTrackingNumber] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Reset modal state whenever a different order is opened
+  useEffect(() => {
+    if (order) {
+      setNote('');
+      setTrackingNumber('');
+      setActionLoading(false);
+    }
+  }, [order?._id]);
+
   if (!order) return null;
 
   const salesRepName = order.salesRep
@@ -281,7 +290,7 @@ export default function OrderManagement() {
     try {
       const params = {};
       if (activeTab !== 'All') {
-        const statusMap = { Pending: 'submitted', Delivered: 'completed' };
+        const statusMap = { Pending: 'submitted' };
         params.status = statusMap[activeTab] || activeTab.toLowerCase();
       }
       if (search) params.search = search;

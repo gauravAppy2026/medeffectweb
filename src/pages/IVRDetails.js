@@ -144,8 +144,10 @@ function IVRDetailsModal({ record, onClose, onAction }) {
     if (record) {
       setApprovalStep(record.status === 'approved' ? 'confirmed' : 'initial');
       setSelectedFile(null);
+      setAdminNote('');
+      setActionLoading(false);
     }
-  }, [record]);
+  }, [record?._id]);
 
   if (!record) return null;
 
