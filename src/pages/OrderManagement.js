@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import PageHeader from '../components/PageHeader';
 import SearchBar from '../components/SearchBar';
 import IconButton from '../components/IconButton';
@@ -7,40 +8,53 @@ import orderService from '../services/orderService';
 
 const tabs = ['All', 'Pending', 'Shipped', 'In Transit', 'Completed', 'Rejected'];
 
-/* ─── 3-dot Actions Dropdown ─── */
+/* ─── 3-dot Actions Dropdown (portal-based) ─── */
 function ActionsDropdown({ onView }) {
   const [open, setOpen] = useState(false);
-  const [dropUp, setDropUp] = useState(false);
-  const ref = useRef(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const btnRef = useRef(null);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     function handleClick(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      if (
+        btnRef.current && !btnRef.current.contains(e.target) &&
+        menuRef.current && !menuRef.current.contains(e.target)
+      ) {
+        setOpen(false);
+      }
     }
-    document.addEventListener('mousedown', handleClick);
+    if (open) document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
+  }, [open]);
 
   const handleToggle = () => {
-    if (!open && ref.current) {
-      const rect = ref.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      setDropUp(spaceBelow < 80);
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setPos({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.right - 120,
+      });
     }
     setOpen(!open);
   };
 
   return (
-    <div className="relative" ref={ref}>
+    <div>
       <button
+        ref={btnRef}
         onClick={handleToggle}
         className="w-6 h-6 flex items-center justify-center hover:bg-gray-100 rounded"
       >
         <span className="material-symbols-outlined text-[#64748b] text-[20px]">more_vert</span>
       </button>
 
-      {open && (
-        <div className={`absolute right-0 ${dropUp ? 'bottom-full mb-1' : 'top-full mt-1'} bg-white border border-[#e2e8f0] rounded-lg shadow-lg w-[120px] z-30 py-1`}>
+      {open && ReactDOM.createPortal(
+        <div
+          ref={menuRef}
+          style={{ position: 'absolute', top: pos.top, left: pos.left, zIndex: 9999 }}
+          className="bg-white border border-[#e2e8f0] rounded-lg shadow-lg w-[120px] py-1"
+        >
           <button
             onClick={() => { setOpen(false); onView(); }}
             className="flex items-center gap-2.5 px-3 py-2 w-full hover:bg-gray-50 text-xs font-medium text-[#0f172a]"
@@ -48,7 +62,8 @@ function ActionsDropdown({ onView }) {
             <span className="material-symbols-outlined text-[16px] text-[#64748b]">visibility</span>
             View
           </button>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
