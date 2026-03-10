@@ -246,7 +246,7 @@ export default function ShipmentTracking() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0089ff]" />
         </div>
       ) : (
-        <div className="bg-white border border-[#e2e8f0] rounded-[14px] shadow-sm overflow-hidden">
+        <div className="bg-white border border-[#e2e8f0] rounded-[14px] shadow-sm">
           <div className="bg-[rgba(226,232,240,0.2)] border-b border-[#e2e8f0] rounded-t-[14px]">
             <div className="grid grid-cols-[1.2fr_1.5fr_0.8fr_0.6fr] px-8 py-4">
               {['ORDER ID', 'TRACKING ID', 'STATUS', 'ACTIONS'].map((col) => (
@@ -257,7 +257,7 @@ export default function ShipmentTracking() {
             </div>
           </div>
 
-          <div className="divide-y divide-[#e2e8f0]">
+          <div className="divide-y divide-[#e2e8f0] rounded-b-[14px] overflow-hidden">
             {shipments.length === 0 ? (
               <div className="px-8 py-8 text-center text-sm text-[#64748b]">No shipments found</div>
             ) : (
