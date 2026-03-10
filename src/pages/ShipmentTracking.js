@@ -1,14 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import PageHeader from '../components/PageHeader';
-import PrimaryButton from '../components/PrimaryButton';
 import shipmentService from '../services/shipmentService';
 
 const statusConfig = {
+  pending: { label: 'Pending', bg: 'bg-[#fff8db]', text: 'text-[#c25e16]' },
   in_transit: { label: 'In Transit', bg: 'bg-[rgba(226,231,251,0.6)]', text: 'text-[#363998]' },
   completed: { label: 'Completed', bg: 'bg-[rgba(222,252,237,0.6)]', text: 'text-[#007a55]' },
-  pending: { label: 'Pending', bg: 'bg-[#fff8db]', text: 'text-[#c25e16]' },
-  delivered: { label: 'Delivered', bg: 'bg-[#defced]', text: 'text-[#007a55]' },
 };
 
 /* ─── 3-dot Actions Dropdown with status change (portal-based) ─── */
@@ -121,103 +119,10 @@ function CopyButton({ text }) {
   );
 }
 
-/* ─── Add Tracking Info view ─── */
-function AddTrackingForm({ onCancel, onSave }) {
-  const [orderId, setOrderId] = useState('');
-  const [trackingNumber, setTrackingNumber] = useState('');
-  const [carrier, setCarrier] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSubmit = async () => {
-    if (!trackingNumber) {
-      setError('Tracking number is required');
-      return;
-    }
-    setSaving(true);
-    setError('');
-    try {
-      await shipmentService.createShipment({
-        order: orderId,
-        trackingNumber,
-        carrier,
-      });
-      onSave();
-    } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || 'Failed to create shipment');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div>
-      <PageHeader
-        title="Add Tracking Info"
-        subtitle="Monitor shipments and manage tracking information."
-      />
-
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>
-      )}
-
-      <div className="mb-6">
-        <label className="block text-xs font-medium text-[#64748b] mb-2">Order ID</label>
-        <input
-          type="text"
-          value={orderId}
-          onChange={(e) => setOrderId(e.target.value)}
-          placeholder="Enter order ID"
-          className="w-full h-[46px] px-4 border border-[#e2e8f0] rounded-[10px] text-sm text-[#0f172a] placeholder:text-[#97a3b6] focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff]"
-        />
-      </div>
-
-      <div className="mb-6">
-        <label className="block text-xs font-medium text-[#64748b] mb-2">Tracking ID</label>
-        <input
-          type="text"
-          value={trackingNumber}
-          onChange={(e) => setTrackingNumber(e.target.value)}
-          placeholder="Enter tracking ID"
-          className="w-full h-[46px] px-4 border border-[#e2e8f0] rounded-[10px] text-sm text-[#0f172a] placeholder:text-[#97a3b6] focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff]"
-        />
-      </div>
-
-      <div className="mb-6">
-        <label className="block text-xs font-medium text-[#64748b] mb-2">Carrier</label>
-        <input
-          type="text"
-          value={carrier}
-          onChange={(e) => setCarrier(e.target.value)}
-          placeholder="e.g. UPS, FedEx, DHL"
-          className="w-full h-[46px] px-4 border border-[#e2e8f0] rounded-[10px] text-sm text-[#0f172a] placeholder:text-[#97a3b6] focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff]"
-        />
-      </div>
-
-      <div className="flex items-center justify-end gap-3">
-        <button
-          onClick={onCancel}
-          className="h-[46px] px-6 border border-[#e2e8f0] rounded-[10px] text-sm font-medium text-[#64748b] hover:bg-gray-50 transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleSubmit}
-          disabled={saving}
-          className="h-[46px] px-6 bg-[#0089ff] text-white text-sm font-semibold rounded-[10px] hover:bg-[#0077e6] transition-colors disabled:opacity-50"
-        >
-          {saving ? 'Saving...' : 'Save'}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 /* ─── Main Page ─── */
 export default function ShipmentTracking() {
   const [shipments, setShipments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showAddForm, setShowAddForm] = useState(false);
 
   const fetchShipments = useCallback(async () => {
     setLoading(true);
@@ -245,25 +150,12 @@ export default function ShipmentTracking() {
     }
   };
 
-  if (showAddForm) {
-    return (
-      <AddTrackingForm
-        onCancel={() => setShowAddForm(false)}
-        onSave={() => { setShowAddForm(false); fetchShipments(); }}
-      />
-    );
-  }
-
   return (
     <div>
       <PageHeader
         title="Shipment Tracking"
-        subtitle="Monitor shipments and manage tracking information."
-      >
-        <PrimaryButton onClick={() => setShowAddForm(true)}>
-          + Add Tracking Info
-        </PrimaryButton>
-      </PageHeader>
+        subtitle="Monitor shipments and manage tracking information. Shipments are auto-created when orders are approved & shipped."
+      />
 
       {loading ? (
         <div className="flex items-center justify-center h-40">
@@ -272,8 +164,8 @@ export default function ShipmentTracking() {
       ) : (
         <div className="bg-white border border-[#e2e8f0] rounded-[14px] shadow-sm overflow-hidden">
           <div className="bg-[rgba(226,232,240,0.2)] border-b border-[#e2e8f0] rounded-t-[14px]">
-            <div className="grid grid-cols-[1.2fr_1.5fr_0.8fr_0.6fr] px-8 py-4">
-              {['ORDER ID', 'TRACKING ID', 'STATUS', 'ACTIONS'].map((col) => (
+            <div className="grid grid-cols-[1fr_1fr_1.2fr_0.8fr_0.8fr_0.5fr] px-8 py-4">
+              {['ORDER ID', 'PATIENT', 'TRACKING ID', 'ORDER STATUS', 'SHIPMENT STATUS', 'ACTIONS'].map((col) => (
                 <span key={col} className="text-xs font-semibold text-[#64748b] uppercase">
                   {col}
                 </span>
@@ -286,14 +178,19 @@ export default function ShipmentTracking() {
               <div className="px-8 py-8 text-center text-sm text-[#64748b]">No shipments found</div>
             ) : (
               shipments.map((shipment) => {
-                const status = statusConfig[shipment.status] || statusConfig.pending;
+                const shipmentStatus = statusConfig[shipment.status] || statusConfig.pending;
                 const orderId = shipment.order?.orderId || shipment.orderId || 'N/A';
+                const patient = shipment.order?.patient;
+                const patientName = patient ? `${patient.firstName || ''} ${patient.lastName || ''}`.trim() : 'N/A';
+                const orderStatus = shipment.order?.status || 'N/A';
+                const orderStatusLabel = { submitted: 'Pending', in_transit: 'In Transit' }[orderStatus] || (orderStatus.charAt(0).toUpperCase() + orderStatus.slice(1));
                 return (
                   <div
                     key={shipment._id}
-                    className="grid grid-cols-[1.2fr_1.5fr_0.8fr_0.6fr] px-8 py-4 items-center hover:bg-gray-50/50 transition-colors"
+                    className="grid grid-cols-[1fr_1fr_1.2fr_0.8fr_0.8fr_0.5fr] px-8 py-4 items-center hover:bg-gray-50/50 transition-colors"
                   >
                     <span className="text-xs font-medium text-[#0f172a]">{orderId}</span>
+                    <span className="text-xs font-medium text-[#0f172a]">{patientName}</span>
 
                     <div className="flex items-center gap-2">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-[#f9fafc] text-xs font-medium text-[#64748b]">
@@ -302,10 +199,14 @@ export default function ShipmentTracking() {
                       <CopyButton text={shipment.trackingNumber} />
                     </div>
 
+                    <span className="inline-flex items-center justify-center w-fit px-2.5 py-0.5 rounded-md text-xs font-medium bg-[#eef1fd] text-[#363998]">
+                      {orderStatusLabel}
+                    </span>
+
                     <span
-                      className={`inline-flex items-center justify-center w-fit px-2.5 py-0.5 rounded-md text-xs font-medium ${status.bg} ${status.text}`}
+                      className={`inline-flex items-center justify-center w-fit px-2.5 py-0.5 rounded-md text-xs font-medium ${shipmentStatus.bg} ${shipmentStatus.text}`}
                     >
-                      {status.label}
+                      {shipmentStatus.label}
                     </span>
 
                     <ActionsDropdown

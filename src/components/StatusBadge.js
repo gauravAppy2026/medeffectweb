@@ -5,6 +5,7 @@ const statusStyles = {
   submitted: 'bg-[#fff8db] text-[#c25e16]',
   approved: 'bg-[#e6f1ff] text-[#2958e8]',
   shipped: 'bg-[#eef1fd] text-[#363998]',
+  in_transit: 'bg-[rgba(226,231,251,0.6)] text-[#363998]',
   completed: 'bg-[#defced] text-[#007a55]',
   delivered: 'bg-[#defced] text-[#007a55]',
   cancelled: 'bg-[#ffebec] text-[#f23e41]',
@@ -17,9 +18,9 @@ const statusStyles = {
 
 export default function StatusBadge({ status, size = 'default' }) {
   const style = statusStyles[status] || 'bg-gray-100 text-gray-600';
-  // Display "submitted" as "Pending" since they are equivalent in the admin UI
-  const displayStatus = status === 'submitted' ? 'pending' : status;
-  const label = displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1);
+  // Display friendly labels for statuses
+  const displayMap = { submitted: 'Pending', in_transit: 'In Transit' };
+  const label = displayMap[status] || (status.charAt(0).toUpperCase() + status.slice(1));
 
   if (status === 'critical' || status === 'urgent' || status === 'normal') {
     return (

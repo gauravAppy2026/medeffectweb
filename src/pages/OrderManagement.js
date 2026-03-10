@@ -5,7 +5,7 @@ import IconButton from '../components/IconButton';
 import StatusBadge from '../components/StatusBadge';
 import orderService from '../services/orderService';
 
-const tabs = ['All', 'Pending', 'Approved', 'Shipped', 'Rejected'];
+const tabs = ['All', 'Pending', 'Shipped', 'In Transit', 'Completed', 'Rejected'];
 
 /* ─── 3-dot Actions Dropdown ─── */
 function ActionsDropdown({ onView }) {
@@ -80,14 +80,12 @@ function OrderDetailsModal({ order, onClose, onAction }) {
     .map((n) => n[0] || '')
     .join('');
 
-  const handleStatusAction = async (status) => {
+  const handleReject = async () => {
     setActionLoading(true);
     try {
-      const payload = { status };
-      if (status === 'rejected' && note.trim()) {
-        payload.rejectionReason = note.trim();
-      }
+      const payload = { status: 'rejected' };
       if (note.trim()) {
+        payload.rejectionReason = note.trim();
         payload.note = note.trim();
       }
       await orderService.updateOrder(order._id, payload);
@@ -100,17 +98,14 @@ function OrderDetailsModal({ order, onClose, onAction }) {
     }
   };
 
-  const handleShip = async () => {
+  const handleApproveAndShip = async () => {
     if (!trackingNumber.trim()) {
       alert('Please enter a tracking number');
       return;
     }
     setActionLoading(true);
     try {
-      // Save tracking number first
-      await orderService.updateTracking(order._id, trackingNumber.trim());
-      // Then update status to shipped
-      const payload = { status: 'shipped' };
+      const payload = { status: 'shipped', trackingNumber: trackingNumber.trim() };
       if (note.trim()) payload.note = note.trim();
       await orderService.updateOrder(order._id, payload);
       onAction();
@@ -127,7 +122,6 @@ function OrderDetailsModal({ order, onClose, onAction }) {
     : 'N/A';
 
   const isSubmitted = order.status === 'submitted' || order.status === 'pending';
-  const isApproved = order.status === 'approved';
 
   // Get existing note for read-only display
   const existingNote = (() => {
@@ -202,37 +196,8 @@ function OrderDetailsModal({ order, onClose, onAction }) {
           </div>
         </div>
 
-        {/* Step 1: Pending/Submitted — Approve or Reject */}
+        {/* Pending/Submitted — Reject or Approve & Ship */}
         {isSubmitted && (
-          <>
-            <p className="text-[12px] font-medium text-[#0f172a] mb-2">Note</p>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Add a note..."
-              className="w-full h-[80px] border border-[#e2e8f0] rounded-[10px] px-4 py-3 text-xs text-[#0f172a] placeholder:text-[#97a3b6] resize-none focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff] mb-5"
-            />
-            <div className="flex items-center justify-center gap-3">
-              <button
-                onClick={() => handleStatusAction('rejected')}
-                disabled={actionLoading}
-                className="h-[42px] px-5 bg-[#f23e41] text-white text-sm font-semibold rounded-[10px] hover:bg-[#d93235] transition-colors disabled:opacity-50"
-              >
-                Reject
-              </button>
-              <button
-                onClick={() => handleStatusAction('approved')}
-                disabled={actionLoading}
-                className="h-[42px] px-5 bg-[#0089ff] text-white text-sm font-semibold rounded-[10px] hover:bg-[#0077e6] transition-colors disabled:opacity-50"
-              >
-                Approve
-              </button>
-            </div>
-          </>
-        )}
-
-        {/* Step 2: Approved — Ship with tracking number */}
-        {isApproved && (
           <>
             <p className="text-[12px] font-medium text-[#0f172a] mb-2">Tracking Number</p>
             <input
@@ -245,23 +210,30 @@ function OrderDetailsModal({ order, onClose, onAction }) {
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Add a shipping note..."
+              placeholder="Add a note..."
               className="w-full h-[80px] border border-[#e2e8f0] rounded-[10px] px-4 py-3 text-xs text-[#0f172a] placeholder:text-[#97a3b6] resize-none focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff] mb-5"
             />
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center gap-3">
               <button
-                onClick={handleShip}
+                onClick={handleReject}
                 disabled={actionLoading}
-                className="h-[42px] px-8 bg-[#10b981] text-white text-sm font-semibold rounded-[10px] hover:bg-[#059669] transition-colors disabled:opacity-50"
+                className="h-[42px] px-5 bg-[#f23e41] text-white text-sm font-semibold rounded-[10px] hover:bg-[#d93235] transition-colors disabled:opacity-50"
               >
-                Ship Order
+                Reject Order
+              </button>
+              <button
+                onClick={handleApproveAndShip}
+                disabled={actionLoading}
+                className="h-[42px] px-5 bg-[#10b981] text-white text-sm font-semibold rounded-[10px] hover:bg-[#059669] transition-colors disabled:opacity-50"
+              >
+                Approve & Ship
               </button>
             </div>
           </>
         )}
 
         {/* Read-only note for processed orders */}
-        {!isSubmitted && !isApproved && existingNote && (
+        {!isSubmitted && existingNote && (
           <div className="mb-2">
             <p className="text-[10px] font-semibold text-[#64748b] uppercase tracking-wider mb-2">
               Note
@@ -290,7 +262,7 @@ export default function OrderManagement() {
     try {
       const params = {};
       if (activeTab !== 'All') {
-        const statusMap = { Pending: 'submitted' };
+        const statusMap = { Pending: 'submitted', 'In Transit': 'in_transit' };
         params.status = statusMap[activeTab] || activeTab.toLowerCase();
       }
       if (search) params.search = search;
