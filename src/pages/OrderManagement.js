@@ -74,6 +74,7 @@ function OrderDetailsModal({ order, onClose, onAction }) {
   const [note, setNote] = useState('');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [shippedQuantities, setShippedQuantities] = useState({});
 
   // Reset modal state whenever a different order is opened
   useEffect(() => {
@@ -81,6 +82,16 @@ function OrderDetailsModal({ order, onClose, onAction }) {
       setNote('');
       setTrackingNumber('');
       setActionLoading(false);
+      // Initialize shipped quantities with ordered quantities
+      const items = (order.lineItems && order.lineItems.length > 0)
+        ? order.lineItems
+        : [{ product: order.product, quantity: order.quantity }];
+      const initial = {};
+      items.forEach((item) => {
+        const pid = item.product?._id || item.product;
+        if (pid) initial[pid] = item.quantity;
+      });
+      setShippedQuantities(initial);
     }
   }, [order?._id]);
 
@@ -122,6 +133,12 @@ function OrderDetailsModal({ order, onClose, onAction }) {
     try {
       const payload = { status: 'shipped', trackingNumber: trackingNumber.trim() };
       if (note.trim()) payload.note = note.trim();
+      // Build shipped items array
+      const shippedItems = Object.entries(shippedQuantities).map(([product, shippedQuantity]) => ({
+        product,
+        shippedQuantity: Number(shippedQuantity),
+      }));
+      if (shippedItems.length > 0) payload.shippedItems = shippedItems;
       await orderService.updateOrder(order._id, payload);
       onAction();
       onClose();
@@ -175,17 +192,40 @@ function OrderDetailsModal({ order, onClose, onAction }) {
             <p className="text-xs font-semibold text-[#0f172a]">{orderDate}</p>
           </div>
           <p className="text-[10px] font-semibold text-[#64748b] uppercase tracking-wider mb-2">Products</p>
-          {(order.lineItems && order.lineItems.length > 0 ? order.lineItems : [{ product: order.product, quantity: order.quantity }]).map((item, idx) => (
-            <div key={idx} className={`flex items-center justify-between py-2 ${idx > 0 ? 'border-t border-[#f0f2f5]' : ''}`}>
-              <div>
-                <p className="text-xs font-semibold text-[#0f172a]">{item.product?.name || 'N/A'}</p>
-                <p className="text-[10px] text-[#64748b]">Qty: {item.quantity}</p>
+          {(order.lineItems && order.lineItems.length > 0 ? order.lineItems : [{ product: order.product, quantity: order.quantity }]).map((item, idx) => {
+            const pid = item.product?._id || item.product;
+            const hasShipped = item.shippedQuantity != null && !isSubmitted;
+            return (
+              <div key={idx} className={`py-2 ${idx > 0 ? 'border-t border-[#f0f2f5]' : ''}`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-[#0f172a]">{item.product?.name || 'N/A'}</p>
+                    <p className="text-[10px] text-[#64748b]">Ordered Qty: {item.quantity}</p>
+                    {hasShipped && (
+                      <p className="text-[10px] font-medium text-[#10b981]">Shipped Qty: {item.shippedQuantity}</p>
+                    )}
+                  </div>
+                  {item.product?.price && (
+                    <p className="text-xs font-semibold text-[#0089ff]">${item.product.price}</p>
+                  )}
+                </div>
+                {isSubmitted && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <label className="text-[10px] text-[#64748b] whitespace-nowrap">Ship Qty:</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max={item.quantity}
+                      value={shippedQuantities[pid] ?? item.quantity}
+                      onChange={(e) => setShippedQuantities((prev) => ({ ...prev, [pid]: e.target.value }))}
+                      className="w-[70px] h-[30px] border border-[#e2e8f0] rounded-[6px] px-2 text-xs text-[#0f172a] text-center focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff]"
+                    />
+                    <span className="text-[10px] text-[#64748b]">/ {item.quantity}</span>
+                  </div>
+                )}
               </div>
-              {item.product?.price && (
-                <p className="text-xs font-semibold text-[#0089ff]">${item.product.price}</p>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Tracking number display for shipped orders */}
