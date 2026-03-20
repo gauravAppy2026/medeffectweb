@@ -330,6 +330,35 @@ function IVRDetailsModal({ record, onClose, onAction }) {
             </>
           ) : null}
 
+          {record.approvalDocument && (
+            <>
+              <p className="text-[12px] font-semibold text-[#64748b] uppercase tracking-wider mb-3">
+                Approval Document
+              </p>
+              <div className="flex flex-wrap gap-3 mb-5">
+                {(() => {
+                  const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(record.approvalDocument);
+                  return (
+                    <a
+                      href={record.approvalDocument}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col items-center gap-1 p-2 border border-[#007a55] rounded-[8px] hover:bg-[#f0fdf4] transition-colors cursor-pointer bg-[rgba(222,252,237,0.15)]"
+                      title="Click to open approval document"
+                    >
+                      {isImg ? (
+                        <img src={record.approvalDocument} alt="Approval Doc" className="w-[50px] h-[50px] object-cover rounded" />
+                      ) : (
+                        <span className="material-symbols-outlined text-[#007a55] text-[36px]">verified</span>
+                      )}
+                      <span className="text-[10px] font-medium text-[#007a55]">Approval Doc</span>
+                    </a>
+                  );
+                })()}
+              </div>
+            </>
+          )}
+
           {record.documents && record.documents.length > 0 && (
             <>
               <p className="text-[12px] font-semibold text-[#64748b] uppercase tracking-wider mb-3">
