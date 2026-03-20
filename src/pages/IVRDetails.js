@@ -298,22 +298,10 @@ function IVRDetailsModal({ record, onClose, onAction }) {
           <p className="text-[12px] font-semibold text-[#64748b] uppercase tracking-wider mb-3">
             Insurance Details
           </p>
-          <div className="grid grid-cols-2 gap-4 mb-5">
+          <div className="grid grid-cols-1 gap-4 mb-5">
             <div>
               <p className="text-[12px] font-medium text-[#64748b] mb-1">Medicare ID</p>
               <p className="text-[14px] font-medium text-[#0f172a]">{record.insurance?.medicareId || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="text-[12px] font-medium text-[#64748b] mb-1">Insurance Name</p>
-              <p className="text-[14px] font-medium text-[#0f172a]">{record.insurance?.insuranceName || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="text-[12px] font-medium text-[#64748b] mb-1">Policy Number</p>
-              <p className="text-[14px] font-medium text-[#0f172a]">{record.insurance?.policyNumber || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="text-[12px] font-medium text-[#64748b] mb-1">Subscriber Name</p>
-              <p className="text-[14px] font-medium text-[#0f172a]">{record.insurance?.subscriberName || 'N/A'}</p>
             </div>
           </div>
 
@@ -458,8 +446,8 @@ export default function IVRDetails() {
       ) : (
         <div className="bg-white border border-[#e2e8f0] rounded-[14px] shadow-sm overflow-hidden">
           <div className="bg-[rgba(226,232,240,0.2)] border-b border-[#e2e8f0] rounded-t-[14px]">
-            <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_0.8fr_0.5fr] px-5 py-4">
-              {['NAME', 'ADDRESS', 'MOBILE NUMBER', 'INSURANCE NAME', 'POLICY NUMBER', 'STATUS', 'ACTIONS'].map((col) => (
+            <div className="grid grid-cols-[1fr_1fr_1fr_1fr_0.8fr_0.5fr] px-5 py-4">
+              {['NAME', 'ADDRESS', 'MOBILE NUMBER', 'MEDICARE ID', 'STATUS', 'ACTIONS'].map((col) => (
                 <span key={col} className="text-xs font-semibold text-[#64748b] uppercase">
                   {col}
                 </span>
@@ -476,13 +464,12 @@ export default function IVRDetails() {
                 return (
                   <div
                     key={record._id}
-                    className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_0.8fr_0.5fr] px-5 py-4 items-center hover:bg-gray-50/50 transition-colors"
+                    className="grid grid-cols-[1fr_1fr_1fr_1fr_0.8fr_0.5fr] px-5 py-4 items-center hover:bg-gray-50/50 transition-colors"
                   >
                     <span className="text-xs font-medium text-[#0f172a]">{name}</span>
                     <span className="text-xs font-medium text-[#0f172a]">{record.patient?.address || 'N/A'}</span>
                     <span className="text-xs font-medium text-[#0f172a]">{record.patient?.phone || 'N/A'}</span>
-                    <span className="text-xs font-medium text-[#0f172a]">{record.insurance?.insuranceName || 'N/A'}</span>
-                    <span className="text-xs font-medium text-[#0f172a]">{record.insurance?.policyNumber || 'N/A'}</span>
+                    <span className="text-xs font-medium text-[#0f172a]">{record.insurance?.medicareId || 'N/A'}</span>
                     <span
                       className={`inline-flex items-center justify-center w-fit px-2.5 py-0.5 rounded-[6px] text-xs font-medium ${sts.bg} ${sts.text}`}
                     >
