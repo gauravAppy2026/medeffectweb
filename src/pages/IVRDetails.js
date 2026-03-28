@@ -320,7 +320,7 @@ function IVRDetailsModal({ record, onClose, onAction }) {
           {/* Admin Note - editable for pending/submitted, read-only for processed */}
           {isPending ? (
             <>
-              <p className="text-[12px] font-medium text-[#0f172a] mb-2">Admin Note</p>
+              <p className="text-[12px] font-medium text-[#0f172a] mb-2">Note from MedEffects</p>
               <textarea
                 value={adminNote}
                 onChange={(e) => setAdminNote(e.target.value)}
@@ -330,7 +330,7 @@ function IVRDetailsModal({ record, onClose, onAction }) {
             </>
           ) : record.adminNote ? (
             <>
-              <p className="text-[12px] font-medium text-[#64748b] mb-2">Admin Note</p>
+              <p className="text-[12px] font-medium text-[#64748b] mb-2">Note from MedEffects</p>
               <div className="w-full min-h-[40px] border border-[#d6dce8] rounded-[8px] px-4 py-3 text-[14px] text-[#24315d] mb-5 bg-[#f9fafc]">
                 {record.adminNote}
               </div>

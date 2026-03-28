@@ -209,7 +209,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-3 gap-6">
         <RecentOrdersCard orders={recentOrders} onViewAll={() => navigate('/orders')} />
         <PendingActionsCard orderCounts={orderCounts} ivrCounts={ivrCounts} navigate={navigate} />
-        <RecentIVRCard ivrRequests={recentIVR} onViewAll={() => navigate('/ivr')} />
+        <RecentIVRCard ivrRequests={recentIVR} onViewAll={() => navigate('/ivr-details')} />
       </div>
     </div>
   );

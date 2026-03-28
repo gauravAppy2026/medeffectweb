@@ -5,7 +5,7 @@ import userService from '../services/userService';
 import doctorService from '../services/doctorService';
 
 function getDoctorLabel(doc) {
-  const name = `Dr. ${doc.firstName} ${doc.lastName}`;
+  const name = `${doc.firstName} ${doc.lastName}`;
   const addr = doc.addresses && doc.addresses.length > 0 ? doc.addresses[0] : null;
   if (addr) {
     const parts = [addr.street, addr.city].filter(Boolean);
@@ -56,7 +56,7 @@ function PractitionerMultiSelect({ doctors, selectedIds, onChange }) {
             key={doc._id}
             className="inline-flex items-center gap-1 bg-[#e6f1ff] text-[#0089ff] text-xs font-medium px-2 py-1 rounded-md"
           >
-            Dr. {doc.firstName} {doc.lastName}
+            {doc.firstName} {doc.lastName}
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); toggle(doc._id); }}
@@ -100,7 +100,7 @@ function PractitionerMultiSelect({ doctors, selectedIds, onChange }) {
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm text-[#24315d] font-medium truncate">
-                        Dr. {doc.firstName} {doc.lastName}
+                        {doc.firstName} {doc.lastName}
                       </p>
                       {doc.addresses && doc.addresses.length > 0 && (
                         <p className="text-xs text-[#64748b] truncate">
