@@ -59,8 +59,8 @@ export const salesRepsData = [
 ];
 
 export const doctorsData = [
-  { name: 'Dr. Patrick', department: 'Neurologist', addresses: ['123, Art Street, Creative Nagar, New Delhi – 110001', '246, XYZ Street, AK Nagar, Delhi – 241231', '972, ABC Street, WB Nagar, Delhi – 913812'], salesRep: 'John Doe' },
-  { name: 'Dr. Patrick', department: 'Neurologist', addresses: ['123, Art Street, Creative Nagar, New Delhi – 110001', '246, XYZ Street, AK Nagar, Delhi – 241231', '972, ABC Street, WB Nagar, Delhi – 913812'], salesRep: 'Jonathan Silverman' },
+  { name: 'Patrick', department: 'Neurologist', addresses: ['123, Art Street, Creative Nagar, New Delhi – 110001', '246, XYZ Street, AK Nagar, Delhi – 241231', '972, ABC Street, WB Nagar, Delhi – 913812'], salesRep: 'John Doe' },
+  { name: 'Patrick', department: 'Neurologist', addresses: ['123, Art Street, Creative Nagar, New Delhi – 110001', '246, XYZ Street, AK Nagar, Delhi – 241231', '972, ABC Street, WB Nagar, Delhi – 913812'], salesRep: 'Jonathan Silverman' },
 ];
 
 export const currentUser = {
