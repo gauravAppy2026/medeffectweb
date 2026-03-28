@@ -10,6 +10,8 @@ const statusStyles = {
   delivered: 'bg-[#defced] text-[#007a55]',
   cancelled: 'bg-[#ffebec] text-[#f23e41]',
   rejected: 'bg-[#ffebec] text-[#f23e41]',
+  covered: 'bg-[#defced] text-[#007a55]',
+  not_covered: 'bg-[#eef1fd] text-[#363998]',
   active: 'bg-[#defced] text-[#007a55]',
   critical: 'text-[#f23e41]',
   urgent: 'text-[#eaa13b]',
@@ -19,7 +21,7 @@ const statusStyles = {
 export default function StatusBadge({ status, size = 'default' }) {
   const style = statusStyles[status] || 'bg-gray-100 text-gray-600';
   // Display friendly labels for statuses
-  const displayMap = { submitted: 'Pending', in_transit: 'In Transit' };
+  const displayMap = { submitted: 'Submitted', in_transit: 'In Transit', not_covered: 'Not Covered' };
   const label = displayMap[status] || (status.charAt(0).toUpperCase() + status.slice(1));
 
   if (status === 'critical' || status === 'urgent' || status === 'normal') {

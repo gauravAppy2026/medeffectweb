@@ -5,11 +5,13 @@ import IconButton from '../components/IconButton';
 import ivrService from '../services/ivrService';
 import api from '../services/api';
 
-const tabs = ['All', 'Pending', 'Approved', 'Rejected'];
+const tabs = ['All', 'Submitted', 'Covered', 'Not Covered', 'Rejected'];
 
 const statusConfig = {
-  pending: { label: 'Pending', bg: 'bg-[#fff8db]', text: 'text-[#c25e16]' },
-  approved: { label: 'Approved', bg: 'bg-[rgba(222,252,237,0.6)]', text: 'text-[#007a55]' },
+  pending: { label: 'Submitted', bg: 'bg-[#fff8db]', text: 'text-[#c25e16]' },
+  submitted: { label: 'Submitted', bg: 'bg-[#fff8db]', text: 'text-[#c25e16]' },
+  covered: { label: 'Covered', bg: 'bg-[rgba(222,252,237,0.6)]', text: 'text-[#007a55]' },
+  not_covered: { label: 'Not Covered', bg: 'bg-[#eef1fd]', text: 'text-[#363998]' },
   rejected: { label: 'Rejected', bg: 'bg-[rgba(254,226,226,0.6)]', text: 'text-[#f23e41]' },
 };
 
@@ -61,7 +63,7 @@ function ActionsDropdown({ onView }) {
 }
 
 /* ─── Approval Document Upload Section ─── */
-function ApprovalDocumentSection({ selectedFile, onFileChange, onRemoveFile, onCancel, onConfirm, loading }) {
+function ApprovalDocumentSection({ selectedFile, onFileChange, onRemoveFile, onCancel, onConfirm, loading, confirmLabel }) {
   const fileInputRef = useRef(null);
 
   const handleSelectClick = () => {
@@ -76,7 +78,7 @@ function ApprovalDocumentSection({ selectedFile, onFileChange, onRemoveFile, onC
 
   return (
     <div className="border border-dashed border-[#007a55] rounded-[10px] bg-[rgba(222,252,237,0.15)] p-4 mb-4">
-      <p className="text-[14px] font-semibold text-[#007a55] mb-1">Attached Approval Document</p>
+      <p className="text-[14px] font-semibold text-[#007a55] mb-1">Attach Document</p>
       <p className="text-[12px] text-[#64748b] mb-3">
         Please upload the approval letter or certificate (PDF) to finalize this request.
       </p>
@@ -126,7 +128,7 @@ function ApprovalDocumentSection({ selectedFile, onFileChange, onRemoveFile, onC
               : 'bg-[#e2e8f0] text-[#97a3b6] cursor-not-allowed'
           }`}
         >
-          {loading ? 'Uploading & Approving...' : 'Confirm & Approve'}
+          {loading ? 'Uploading...' : (confirmLabel || 'Confirm')}
         </button>
       </div>
     </div>
@@ -135,14 +137,15 @@ function ApprovalDocumentSection({ selectedFile, onFileChange, onRemoveFile, onC
 
 /* ─── IVR Details Modal ─── */
 function IVRDetailsModal({ record, onClose, onAction }) {
-  const [approvalStep, setApprovalStep] = useState('initial');
+  const [approvalStep, setApprovalStep] = useState('initial'); // 'initial' | 'uploading_covered' | 'uploading_not_covered' | 'confirmed'
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [adminNote, setAdminNote] = useState('');
 
   useEffect(() => {
     if (record) {
-      setApprovalStep(record.status === 'approved' ? 'confirmed' : 'initial');
+      const isProcessed = record.status === 'covered' || record.status === 'not_covered' || record.status === 'approved';
+      setApprovalStep(isProcessed ? 'confirmed' : 'initial');
       setSelectedFile(null);
       setAdminNote('');
       setActionLoading(false);
@@ -155,8 +158,9 @@ function IVRDetailsModal({ record, onClose, onAction }) {
   const lastName = record.patient?.lastName || '';
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   const name = `${firstName} ${lastName}`.trim();
-  const status = statusConfig[record.status] || statusConfig.pending;
-  const isApprovedWithDoc = approvalStep === 'confirmed' || record.status === 'approved';
+  const status = statusConfig[record.status] || statusConfig.submitted;
+  const isProcessed = approvalStep === 'confirmed' || record.status === 'covered' || record.status === 'not_covered' || record.status === 'approved';
+  const isPending = record.status === 'pending' || record.status === 'submitted';
 
   const handleReject = async () => {
     setActionLoading(true);
@@ -173,7 +177,7 @@ function IVRDetailsModal({ record, onClose, onAction }) {
     }
   };
 
-  const handleApproveConfirm = async () => {
+  const handleDocumentConfirm = async (targetStatus) => {
     setActionLoading(true);
     try {
       let approvalDocument;
@@ -186,22 +190,18 @@ function IVRDetailsModal({ record, onClose, onAction }) {
         });
         approvalDocument = uploadRes.data?.data?.url || uploadRes.data?.url;
       }
-      const payload = { status: 'approved' };
+      const payload = { status: targetStatus };
       if (approvalDocument) payload.approvalDocument = approvalDocument;
       if (adminNote.trim()) payload.note = adminNote.trim();
       await ivrService.updateIVR(record._id, payload);
       setApprovalStep('confirmed');
       onAction();
     } catch (err) {
-      alert(err.response?.data?.error || err.response?.data?.message || 'Failed to approve');
+      alert(err.response?.data?.error || err.response?.data?.message || 'Failed to update');
     } finally {
       setActionLoading(false);
     }
   };
-
-  const dob = record.patient?.dateOfBirth
-    ? new Date(record.patient.dateOfBirth).toLocaleDateString('en-GB')
-    : 'N/A';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -235,18 +235,20 @@ function IVRDetailsModal({ record, onClose, onAction }) {
               </div>
             </div>
 
-            {isApprovedWithDoc && (
+            {isProcessed && (
               <div className="flex items-center justify-between border-t border-[#e8ebf1] pt-3">
                 <p className="text-[12px] font-medium text-[#64748b]">
                   Decision made on {record.updatedAt ? new Date(record.updatedAt).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')}
                 </p>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-[6px] text-[11px] font-medium bg-[rgba(222,252,237,0.6)] text-[#007a55] border border-[#007a55]">
-                  Approval Document Attached
-                </span>
+                {record.approvalDocument && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-[6px] text-[11px] font-medium bg-[rgba(222,252,237,0.6)] text-[#007a55] border border-[#007a55]">
+                    Document Attached
+                  </span>
+                )}
               </div>
             )}
 
-            {record.status === 'pending' && approvalStep === 'initial' && (
+            {isPending && approvalStep === 'initial' && (
               <div className="flex items-center justify-end gap-2">
                 <button
                   onClick={handleReject}
@@ -257,41 +259,46 @@ function IVRDetailsModal({ record, onClose, onAction }) {
                   <span className="text-[12px] font-medium text-[#f23e41]">Reject</span>
                 </button>
                 <button
-                  onClick={() => setApprovalStep('uploading')}
+                  onClick={() => setApprovalStep('uploading_covered')}
                   className="flex items-center gap-1.5 h-[32px] px-4 bg-[#007a55] rounded-[6px] shadow-sm hover:bg-[#006647] transition-colors"
                 >
                   <span className="material-symbols-outlined text-white text-[14px]">check</span>
-                  <span className="text-[12px] font-medium text-white">Approve</span>
+                  <span className="text-[12px] font-medium text-white">Covered</span>
+                </button>
+                <button
+                  onClick={() => setApprovalStep('uploading_not_covered')}
+                  className="flex items-center gap-1.5 h-[32px] px-4 bg-[#363998] rounded-[6px] shadow-sm hover:bg-[#2a2d7a] transition-colors"
+                >
+                  <span className="material-symbols-outlined text-white text-[14px]">block</span>
+                  <span className="text-[12px] font-medium text-white">Not Covered</span>
                 </button>
               </div>
             )}
           </div>
 
-          {approvalStep === 'uploading' && (
+          {approvalStep === 'uploading_covered' && (
             <ApprovalDocumentSection
               selectedFile={selectedFile}
               onFileChange={(file) => setSelectedFile(file)}
               onRemoveFile={() => setSelectedFile(null)}
               onCancel={() => { setApprovalStep('initial'); setSelectedFile(null); }}
-              onConfirm={handleApproveConfirm}
+              onConfirm={() => handleDocumentConfirm('covered')}
               loading={actionLoading}
+              confirmLabel="Confirm Covered"
             />
           )}
 
-          <div className="grid grid-cols-3 gap-4 mb-5">
-            <div>
-              <p className="text-[12px] font-medium text-[#64748b] mb-1">Date of Birth</p>
-              <p className="text-[14px] font-medium text-[#0f172a]">{dob}</p>
-            </div>
-            <div>
-              <p className="text-[12px] font-medium text-[#64748b] mb-1">Gender</p>
-              <p className="text-[14px] font-medium text-[#0f172a] capitalize">{record.patient?.gender || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="text-[12px] font-medium text-[#64748b] mb-1">Mobile Number</p>
-              <p className="text-[14px] font-medium text-[#0f172a]">{record.patient?.phone || 'N/A'}</p>
-            </div>
-          </div>
+          {approvalStep === 'uploading_not_covered' && (
+            <ApprovalDocumentSection
+              selectedFile={selectedFile}
+              onFileChange={(file) => setSelectedFile(file)}
+              onRemoveFile={() => setSelectedFile(null)}
+              onCancel={() => { setApprovalStep('initial'); setSelectedFile(null); }}
+              onConfirm={() => handleDocumentConfirm('not_covered')}
+              loading={actionLoading}
+              confirmLabel="Confirm Not Covered"
+            />
+          )}
 
           <div className="h-px bg-[#d6dce8] mb-5" />
 
@@ -310,8 +317,8 @@ function IVRDetailsModal({ record, onClose, onAction }) {
             {record.comment || 'No comments'}
           </div>
 
-          {/* Admin Note - editable for pending, read-only for processed */}
-          {record.status === 'pending' ? (
+          {/* Admin Note - editable for pending/submitted, read-only for processed */}
+          {isPending ? (
             <>
               <p className="text-[12px] font-medium text-[#0f172a] mb-2">Admin Note</p>
               <textarea
@@ -407,7 +414,10 @@ export default function IVRDetails() {
     setLoading(true);
     try {
       const params = {};
-      if (activeTab !== 'All') params.status = activeTab.toLowerCase();
+      if (activeTab !== 'All') {
+        const tabStatusMap = { Submitted: 'submitted', Covered: 'covered', 'Not Covered': 'not_covered', Rejected: 'rejected' };
+        params.status = tabStatusMap[activeTab] || activeTab.toLowerCase();
+      }
       if (search) params.search = search;
 
       const [ivrRes, countsRes] = await Promise.all([
@@ -429,7 +439,7 @@ export default function IVRDetails() {
     fetchData();
   }, [fetchData]);
 
-  const pendingCount = statusCounts.pending || 0;
+  const submittedCount = statusCounts.pending || statusCounts.submitted || 0;
 
   return (
     <div>
@@ -459,9 +469,9 @@ export default function IVRDetails() {
             }`}
           >
             {tab}
-            {tab === 'Pending' && pendingCount > 0 && (
+            {tab === 'Submitted' && submittedCount > 0 && (
               <span className="w-4 h-4 bg-[#de524c] text-white text-[12px] font-medium rounded flex items-center justify-center">
-                {pendingCount}
+                {submittedCount}
               </span>
             )}
           </button>
@@ -475,8 +485,8 @@ export default function IVRDetails() {
       ) : (
         <div className="bg-white border border-[#e2e8f0] rounded-[14px] shadow-sm overflow-hidden">
           <div className="bg-[rgba(226,232,240,0.2)] border-b border-[#e2e8f0] rounded-t-[14px]">
-            <div className="grid grid-cols-[1fr_1fr_1fr_1fr_0.8fr_0.5fr] px-5 py-4">
-              {['NAME', 'ADDRESS', 'MOBILE NUMBER', 'MEDICARE ID', 'STATUS', 'ACTIONS'].map((col) => (
+            <div className="grid grid-cols-[1fr_1fr_0.8fr_0.5fr] px-5 py-4">
+              {['NAME', 'MEDICARE ID', 'STATUS', 'ACTIONS'].map((col) => (
                 <span key={col} className="text-xs font-semibold text-[#64748b] uppercase">
                   {col}
                 </span>
@@ -488,16 +498,14 @@ export default function IVRDetails() {
               <div className="px-5 py-8 text-center text-sm text-[#64748b]">No IVR requests found</div>
             ) : (
               ivrData.map((record) => {
-                const sts = statusConfig[record.status] || statusConfig.pending;
+                const sts = statusConfig[record.status] || statusConfig.submitted;
                 const name = `${record.patient?.firstName || ''} ${record.patient?.lastName || ''}`.trim();
                 return (
                   <div
                     key={record._id}
-                    className="grid grid-cols-[1fr_1fr_1fr_1fr_0.8fr_0.5fr] px-5 py-4 items-center hover:bg-gray-50/50 transition-colors"
+                    className="grid grid-cols-[1fr_1fr_0.8fr_0.5fr] px-5 py-4 items-center hover:bg-gray-50/50 transition-colors"
                   >
                     <span className="text-xs font-medium text-[#0f172a]">{name}</span>
-                    <span className="text-xs font-medium text-[#0f172a]">{record.patient?.address || 'N/A'}</span>
-                    <span className="text-xs font-medium text-[#0f172a]">{record.patient?.phone || 'N/A'}</span>
                     <span className="text-xs font-medium text-[#0f172a]">{record.insurance?.medicareId || 'N/A'}</span>
                     <span
                       className={`inline-flex items-center justify-center w-fit px-2.5 py-0.5 rounded-[6px] text-xs font-medium ${sts.bg} ${sts.text}`}

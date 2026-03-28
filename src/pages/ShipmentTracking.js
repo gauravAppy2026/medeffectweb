@@ -183,7 +183,7 @@ export default function ShipmentTracking() {
                 const patient = shipment.order?.patient;
                 const patientName = patient ? `${patient.firstName || ''} ${patient.lastName || ''}`.trim() : 'N/A';
                 const orderStatus = shipment.order?.status || 'N/A';
-                const orderStatusLabel = { submitted: 'Pending', in_transit: 'In Transit' }[orderStatus] || (orderStatus.charAt(0).toUpperCase() + orderStatus.slice(1));
+                const orderStatusLabel = { submitted: 'Submitted', in_transit: 'In Transit' }[orderStatus] || (orderStatus.charAt(0).toUpperCase() + orderStatus.slice(1));
                 return (
                   <div
                     key={shipment._id}

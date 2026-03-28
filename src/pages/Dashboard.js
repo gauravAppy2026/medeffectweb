@@ -35,7 +35,7 @@ function RecentOrdersCard({ orders, onViewAll }) {
   );
 }
 
-function PendingActionsCard({ orderCounts, ivrCounts }) {
+function PendingActionsCard({ orderCounts, ivrCounts, navigate }) {
   const actions = [
     {
       title: `${orderCounts.pending || orderCounts.submitted || 0} Orders Pending`,
@@ -44,6 +44,7 @@ function PendingActionsCard({ orderCounts, ivrCounts }) {
       bgColor: 'bg-[#fff8db]',
       btnColor: 'bg-[#eaa13b]',
       btnText: 'Review',
+      onClick: () => navigate('/orders'),
     },
     {
       title: `${ivrCounts.pending || 0} IVR Pending`,
@@ -52,6 +53,7 @@ function PendingActionsCard({ orderCounts, ivrCounts }) {
       bgColor: 'bg-[rgba(226,231,251,0.6)]',
       btnColor: 'bg-[#363998]',
       btnText: 'Verify',
+      onClick: () => navigate('/ivr-details'),
     },
     {
       title: `${orderCounts.shipped || 0} Orders Shipped`,
@@ -60,6 +62,7 @@ function PendingActionsCard({ orderCounts, ivrCounts }) {
       bgColor: 'bg-[rgba(222,252,237,0.6)]',
       btnColor: 'bg-[#007a55]',
       btnText: 'Track',
+      onClick: () => navigate('/shipments'),
     },
   ];
 
@@ -78,7 +81,10 @@ function PendingActionsCard({ orderCounts, ivrCounts }) {
               <p className="text-[13px] font-semibold text-[#0f172a]">{action.title}</p>
               <p className="text-[11px] text-[#64748b]">{action.subtitle}</p>
             </div>
-            <button className={`${action.btnColor} text-white text-xs font-medium px-3 py-1 rounded-md shrink-0`}>
+            <button
+              onClick={action.onClick}
+              className={`${action.btnColor} text-white text-xs font-medium px-3 py-1 rounded-md shrink-0`}
+            >
               {action.btnText}
             </button>
           </div>
@@ -202,7 +208,7 @@ export default function Dashboard() {
       {/* Cards Row */}
       <div className="grid grid-cols-3 gap-6">
         <RecentOrdersCard orders={recentOrders} onViewAll={() => navigate('/orders')} />
-        <PendingActionsCard orderCounts={orderCounts} ivrCounts={ivrCounts} />
+        <PendingActionsCard orderCounts={orderCounts} ivrCounts={ivrCounts} navigate={navigate} />
         <RecentIVRCard ivrRequests={recentIVR} onViewAll={() => navigate('/ivr')} />
       </div>
     </div>

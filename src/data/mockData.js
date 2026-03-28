@@ -6,7 +6,7 @@ export const sidebarItems = [
   { label: 'Reports', icon: 'finance_mode', path: '/reports' },
   { label: 'IVR Details', icon: 'call_quality', path: '/ivr-details' },
   { label: 'Products', icon: 'inventory_2', path: '/products' },
-  { label: 'Doctors', icon: 'stethoscope', path: '/doctors' },
+  { label: 'Providers', icon: 'stethoscope', path: '/doctors' },
   { label: 'Content', icon: 'article', path: '/content' },
   { label: 'Audit Logs', icon: 'shield', path: '/audit-logs' },
   { label: 'Settings', icon: 'settings', path: '/settings' },

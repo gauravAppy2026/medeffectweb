@@ -96,11 +96,11 @@ function DoctorForm({ onCancel, onSave, initialData }) {
         firstName: form.firstName,
         lastName: form.lastName,
         department: form.department,
-        gender: form.gender,
-        phone: form.phone,
-        licenseNumber: form.licenseNumber,
         addresses: hasAddress ? [addrObj] : [],
       };
+      if (form.gender) payload.gender = form.gender;
+      if (form.phone) payload.phone = form.phone;
+      if (form.licenseNumber) payload.licenseNumber = form.licenseNumber;
       if (initialData?._id) {
         await doctorService.updateDoctor(initialData._id, payload);
       } else {
@@ -108,7 +108,7 @@ function DoctorForm({ onCancel, onSave, initialData }) {
       }
       onSave();
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || 'Failed to save doctor');
+      setError(err.response?.data?.error || err.response?.data?.message || 'Failed to save provider');
     } finally {
       setSaving(false);
     }
@@ -116,7 +116,7 @@ function DoctorForm({ onCancel, onSave, initialData }) {
 
   return (
     <div>
-      <PageHeader title={initialData?._id ? 'Edit Doctor' : 'Add Doctor'} subtitle="Fill the doctor details" />
+      <PageHeader title={initialData?._id ? 'Edit Provider' : 'Add Provider'} subtitle="Fill the provider details" />
 
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>
@@ -289,12 +289,12 @@ export default function Doctors() {
   }, [fetchDoctors]);
 
   const handleDelete = async (doctor) => {
-    if (!window.confirm(`Delete Dr. ${doctor.firstName} ${doctor.lastName}?`)) return;
+    if (!window.confirm(`Delete ${doctor.firstName} ${doctor.lastName}?`)) return;
     try {
       await doctorService.deleteDoctor(doctor._id);
       fetchDoctors();
     } catch (err) {
-      alert(err.response?.data?.error || err.response?.data?.message || 'Failed to delete doctor');
+      alert(err.response?.data?.error || err.response?.data?.message || 'Failed to delete provider');
     }
   };
 
@@ -310,8 +310,8 @@ export default function Doctors() {
 
   return (
     <div>
-      <PageHeader title="Doctors" subtitle="List of doctors">
-        <PrimaryButton onClick={() => setShowForm(true)}>+ Add Doctor</PrimaryButton>
+      <PageHeader title="Providers" subtitle="List of providers">
+        <PrimaryButton onClick={() => setShowForm(true)}>+ Add Provider</PrimaryButton>
       </PageHeader>
 
       {loading ? (
@@ -322,7 +322,7 @@ export default function Doctors() {
         <div className="bg-white border border-[#e2e8f0] rounded-[14px] shadow-sm overflow-hidden">
           <div className="bg-[rgba(226,232,240,0.2)] border-b border-[#e2e8f0] rounded-t-[14px]">
             <div className="grid grid-cols-[1fr_0.8fr_2fr_1fr_0.5fr] px-5 py-4">
-              {['DOCTORS NAME', 'DEPARTMENT', 'ADDRESS', 'PHONE', 'ACTIONS'].map((col) => (
+              {['PROVIDER NAME', 'DEPARTMENT', 'ADDRESS', 'PHONE', 'ACTIONS'].map((col) => (
                 <span key={col} className="text-xs font-semibold text-[#64748b] uppercase">
                   {col}
                 </span>
@@ -331,7 +331,7 @@ export default function Doctors() {
           </div>
           <div className="divide-y divide-[#e2e8f0]">
             {doctors.length === 0 ? (
-              <div className="px-5 py-8 text-center text-sm text-[#64748b]">No doctors found</div>
+              <div className="px-5 py-8 text-center text-sm text-[#64748b]">No providers found</div>
             ) : (
               doctors.map((doctor) => (
                 <div
@@ -339,7 +339,7 @@ export default function Doctors() {
                   className="grid grid-cols-[1fr_0.8fr_2fr_1fr_0.5fr] px-5 py-4 items-start hover:bg-gray-50/50 transition-colors"
                 >
                   <span className="text-xs font-medium text-[#0f172a]">
-                    Dr. {doctor.firstName} {doctor.lastName}
+                    {doctor.firstName} {doctor.lastName}
                   </span>
                   <span className="text-xs font-medium text-[#0f172a]">{doctor.department || 'General'}</span>
                   <div className="space-y-0">

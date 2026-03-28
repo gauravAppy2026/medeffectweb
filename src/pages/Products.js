@@ -73,8 +73,8 @@ function ProductForm({ onCancel, onSave, initialData }) {
   const handleChange = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
 
   const handleSubmit = async () => {
-    if (!form.name) {
-      setError('Product name is required');
+    if (!form.name || !form.sku || !form.category) {
+      setError('Product name, SKU, and category are required');
       return;
     }
     setSaving(true);
