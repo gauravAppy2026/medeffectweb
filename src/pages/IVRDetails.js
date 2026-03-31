@@ -80,7 +80,7 @@ function ApprovalDocumentSection({ selectedFile, onFileChange, onRemoveFile, onC
     <div className="border border-dashed border-[#007a55] rounded-[10px] bg-[rgba(222,252,237,0.15)] p-4 mb-4">
       <p className="text-[14px] font-semibold text-[#007a55] mb-1">Attach Document</p>
       <p className="text-[12px] text-[#64748b] mb-3">
-        Please upload the approval letter or certificate (PDF) to finalize this request.
+        Please attach the document to finalize this request.
       </p>
 
       <input
