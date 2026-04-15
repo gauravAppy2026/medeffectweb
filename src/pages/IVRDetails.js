@@ -63,7 +63,14 @@ function ActionsDropdown({ onView }) {
 }
 
 /* ─── Approval Document Upload Section ─── */
-function ApprovalDocumentSection({ selectedFile, onFileChange, onRemoveFile, onCancel, onConfirm, loading, confirmLabel }) {
+function ApprovalDocumentSection({
+  selectedFile, onFileChange, onRemoveFile,
+  onCancel, onConfirm, loading, confirmLabel,
+  fileOptional = false,
+  noteRequired = false,
+  adminNote = '',
+  onNoteChange,
+}) {
   const fileInputRef = useRef(null);
 
   const handleSelectClick = () => {
@@ -76,11 +83,19 @@ function ApprovalDocumentSection({ selectedFile, onFileChange, onRemoveFile, onC
     e.target.value = '';
   };
 
+  const hasNote = !!(adminNote || '').trim();
+  const hasFile = !!selectedFile;
+  const canConfirm = noteRequired
+    ? hasNote && (fileOptional || hasFile)
+    : hasFile;
+
   return (
     <div className="border border-dashed border-[#007a55] rounded-[10px] bg-[rgba(222,252,237,0.15)] p-4 mb-4">
       <p className="text-[14px] font-semibold text-[#007a55] mb-1">Attach Document</p>
       <p className="text-[12px] text-[#64748b] mb-3">
-        Please attach the document to finalize this request.
+        {fileOptional
+          ? 'Please attach the document (optional) and add a note explaining your decision below.'
+          : 'Please attach the document to finalize this request.'}
       </p>
 
       <input
@@ -97,7 +112,9 @@ function ApprovalDocumentSection({ selectedFile, onFileChange, onRemoveFile, onC
           className="w-full h-[40px] border border-dashed border-[#007a55] rounded-[8px] bg-white flex items-center justify-center gap-2 hover:bg-[#f0fdf4] transition-colors mb-3"
         >
           <span className="material-symbols-outlined text-[#007a55] text-[18px]">attach_file</span>
-          <span className="text-[13px] font-medium text-[#007a55]">Select PDF Document</span>
+          <span className="text-[13px] font-medium text-[#007a55]">
+            {fileOptional ? 'Select Document (Optional)' : 'Select PDF Document'}
+          </span>
         </button>
       ) : (
         <div className="w-full h-[40px] border border-dashed border-[#007a55] rounded-[8px] bg-white flex items-center justify-between px-3 mb-3">
@@ -112,6 +129,23 @@ function ApprovalDocumentSection({ selectedFile, onFileChange, onRemoveFile, onC
         </div>
       )}
 
+      {noteRequired && (
+        <div className="mb-3">
+          <p className="text-[12px] font-medium text-[#0f172a] mb-1">
+            Note from MedEffects <span className="text-[#f23e41]">*</span>
+          </p>
+          <textarea
+            value={adminNote}
+            onChange={(e) => onNoteChange && onNoteChange(e.target.value)}
+            placeholder="Explain why this IVR is not covered..."
+            className="w-full h-[70px] border border-[#d6dce8] rounded-[8px] px-3 py-2 text-[13px] text-[#0f172a] placeholder:text-[#97a3b6] resize-none focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff]"
+          />
+          {!hasNote && (
+            <p className="text-[11px] text-[#f23e41] mt-1">A note is required.</p>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center justify-end gap-3">
         <button
           onClick={onCancel}
@@ -121,9 +155,9 @@ function ApprovalDocumentSection({ selectedFile, onFileChange, onRemoveFile, onC
         </button>
         <button
           onClick={onConfirm}
-          disabled={!selectedFile || loading}
+          disabled={!canConfirm || loading}
           className={`h-[32px] px-4 rounded-[6px] text-[13px] font-medium transition-colors ${
-            selectedFile && !loading
+            canConfirm && !loading
               ? 'bg-[#0f172a] text-white hover:bg-[#1e293b]'
               : 'bg-[#e2e8f0] text-[#97a3b6] cursor-not-allowed'
           }`}
@@ -163,10 +197,13 @@ function IVRDetailsModal({ record, onClose, onAction }) {
   const isPending = record.status === 'pending' || record.status === 'submitted';
 
   const handleReject = async () => {
+    if (!adminNote.trim()) {
+      alert('Please enter a note explaining why this IVR is being rejected.');
+      return;
+    }
     setActionLoading(true);
     try {
-      const rejectPayload = { status: 'rejected' };
-      if (adminNote.trim()) rejectPayload.note = adminNote.trim();
+      const rejectPayload = { status: 'rejected', note: adminNote.trim() };
       await ivrService.updateIVR(record._id, rejectPayload);
       onAction();
       onClose();
@@ -249,30 +286,48 @@ function IVRDetailsModal({ record, onClose, onAction }) {
             )}
 
             {isPending && approvalStep === 'initial' && (
-              <div className="flex items-center justify-end gap-2">
-                <button
-                  onClick={handleReject}
-                  disabled={actionLoading}
-                  className="flex items-center gap-1.5 h-[32px] px-3 border border-[#f23e41] rounded-[6px] bg-white hover:bg-red-50 transition-colors"
-                >
-                  <span className="material-symbols-outlined text-[#f23e41] text-[14px]">close</span>
-                  <span className="text-[12px] font-medium text-[#f23e41]">Reject</span>
-                </button>
-                <button
-                  onClick={() => setApprovalStep('uploading_covered')}
-                  className="flex items-center gap-1.5 h-[32px] px-4 bg-[#007a55] rounded-[6px] shadow-sm hover:bg-[#006647] transition-colors"
-                >
-                  <span className="material-symbols-outlined text-white text-[14px]">check</span>
-                  <span className="text-[12px] font-medium text-white">Covered</span>
-                </button>
-                <button
-                  onClick={() => setApprovalStep('uploading_not_covered')}
-                  className="flex items-center gap-1.5 h-[32px] px-4 bg-[#363998] rounded-[6px] shadow-sm hover:bg-[#2a2d7a] transition-colors"
-                >
-                  <span className="material-symbols-outlined text-white text-[14px]">block</span>
-                  <span className="text-[12px] font-medium text-white">Not Covered</span>
-                </button>
-              </div>
+              <>
+                <div className="mt-3 mb-3">
+                  <p className="text-[12px] font-medium text-[#0f172a] mb-1">
+                    Note from MedEffects <span className="text-[11px] font-normal text-[#64748b]">(required for Reject)</span>
+                  </p>
+                  <textarea
+                    value={adminNote}
+                    onChange={(e) => setAdminNote(e.target.value)}
+                    placeholder="Add a note explaining your decision..."
+                    className="w-full h-[60px] border border-[#d6dce8] rounded-[8px] px-3 py-2 text-[13px] text-[#0f172a] placeholder:text-[#97a3b6] resize-none focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff]"
+                  />
+                </div>
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    onClick={handleReject}
+                    disabled={actionLoading || !adminNote.trim()}
+                    title={!adminNote.trim() ? 'Enter a note above to reject' : ''}
+                    className={`flex items-center gap-1.5 h-[32px] px-3 border rounded-[6px] bg-white transition-colors ${
+                      adminNote.trim() && !actionLoading
+                        ? 'border-[#f23e41] hover:bg-red-50 cursor-pointer'
+                        : 'border-[#e2e8f0] opacity-50 cursor-not-allowed'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[#f23e41] text-[14px]">close</span>
+                    <span className="text-[12px] font-medium text-[#f23e41]">Reject</span>
+                  </button>
+                  <button
+                    onClick={() => setApprovalStep('uploading_covered')}
+                    className="flex items-center gap-1.5 h-[32px] px-4 bg-[#007a55] rounded-[6px] shadow-sm hover:bg-[#006647] transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-white text-[14px]">check</span>
+                    <span className="text-[12px] font-medium text-white">Covered</span>
+                  </button>
+                  <button
+                    onClick={() => setApprovalStep('uploading_not_covered')}
+                    className="flex items-center gap-1.5 h-[32px] px-4 bg-[#363998] rounded-[6px] shadow-sm hover:bg-[#2a2d7a] transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-white text-[14px]">block</span>
+                    <span className="text-[12px] font-medium text-white">Not Covered</span>
+                  </button>
+                </div>
+              </>
             )}
           </div>
 
@@ -297,6 +352,10 @@ function IVRDetailsModal({ record, onClose, onAction }) {
               onConfirm={() => handleDocumentConfirm('not_covered')}
               loading={actionLoading}
               confirmLabel="Confirm Not Covered"
+              fileOptional={true}
+              noteRequired={true}
+              adminNote={adminNote}
+              onNoteChange={setAdminNote}
             />
           )}
 
@@ -317,18 +376,8 @@ function IVRDetailsModal({ record, onClose, onAction }) {
             {record.comment || 'No comments'}
           </div>
 
-          {/* Admin Note - editable for pending/submitted, read-only for processed */}
-          {isPending ? (
-            <>
-              <p className="text-[12px] font-medium text-[#0f172a] mb-2">Note from MedEffects</p>
-              <textarea
-                value={adminNote}
-                onChange={(e) => setAdminNote(e.target.value)}
-                placeholder="Add a note (optional)..."
-                className="w-full h-[70px] border border-[#d6dce8] rounded-[8px] px-4 py-3 text-[13px] text-[#0f172a] placeholder:text-[#97a3b6] resize-none focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff] mb-5"
-              />
-            </>
-          ) : record.adminNote ? (
+          {/* Admin Note - read-only for processed (editable textarea is now in action card) */}
+          {!isPending && record.adminNote ? (
             <>
               <p className="text-[12px] font-medium text-[#64748b] mb-2">Note from MedEffects</p>
               <div className="w-full min-h-[40px] border border-[#d6dce8] rounded-[8px] px-4 py-3 text-[14px] text-[#24315d] mb-5 bg-[#f9fafc]">
