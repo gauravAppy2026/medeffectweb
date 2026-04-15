@@ -7,7 +7,7 @@ import StatusBadge from '../components/StatusBadge';
 import userService from '../services/userService';
 import { useNavigate } from 'react-router-dom';
 
-function SalesRepCard({ rep }) {
+function SalesRepCard({ rep, onEdit }) {
   const firstName = rep.firstName || '';
   const lastName = rep.lastName || '';
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
@@ -26,7 +26,16 @@ function SalesRepCard({ rep }) {
               <p className="text-xs font-medium text-[#64748b]">{rep.licenseNumber || rep.email}</p>
             </div>
           </div>
-          <StatusBadge status={rep.isActive !== false ? 'active' : 'inactive'} size="small" />
+          <div className="flex items-center gap-2">
+            <StatusBadge status={rep.isActive !== false ? 'active' : 'inactive'} size="small" />
+            <button
+              onClick={() => onEdit && onEdit(rep)}
+              className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-gray-100 transition-colors"
+              title="Edit"
+            >
+              <span className="material-symbols-outlined text-[#64748b] text-[18px]">edit</span>
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-1 mb-4">
@@ -117,7 +126,11 @@ export default function SalesRepresentatives() {
       ) : (
         <div className="grid grid-cols-4 gap-5">
           {reps.map((rep) => (
-            <SalesRepCard key={rep._id} rep={rep} />
+            <SalesRepCard
+              key={rep._id}
+              rep={rep}
+              onEdit={(r) => navigate(`/registrations/${r._id}`)}
+            />
           ))}
         </div>
       )}

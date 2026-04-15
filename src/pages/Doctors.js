@@ -78,7 +78,7 @@ function DoctorForm({ onCancel, onSave, initialData }) {
   const handleChange = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
 
   const handleSubmit = async () => {
-    if (!form.firstName || !form.lastName || !form.department) {
+    if (!form.firstName.trim() || !form.lastName.trim() || !form.department.trim()) {
       setError('First name, last name, and department are required');
       return;
     }
@@ -86,21 +86,21 @@ function DoctorForm({ onCancel, onSave, initialData }) {
     setError('');
     try {
       const addrObj = {
-        street: form.address,
-        city: form.city,
-        state: form.state,
-        zipCode: form.zipCode,
+        street: form.address.trim(),
+        city: form.city.trim(),
+        state: form.state.trim(),
+        zipCode: form.zipCode.trim(),
       };
-      const hasAddress = form.address || form.city || form.state || form.zipCode;
+      const hasAddress = addrObj.street || addrObj.city || addrObj.state || addrObj.zipCode;
       const payload = {
-        firstName: form.firstName,
-        lastName: form.lastName,
-        department: form.department,
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        department: form.department.trim(),
         addresses: hasAddress ? [addrObj] : [],
       };
       if (form.gender) payload.gender = form.gender;
-      if (form.phone) payload.phone = form.phone;
-      if (form.licenseNumber) payload.licenseNumber = form.licenseNumber;
+      if (form.phone.trim()) payload.phone = form.phone.trim();
+      if (form.licenseNumber.trim()) payload.licenseNumber = form.licenseNumber.trim();
       if (initialData?._id) {
         await doctorService.updateDoctor(initialData._id, payload);
       } else {
@@ -125,7 +125,7 @@ function DoctorForm({ onCancel, onSave, initialData }) {
       <div className="space-y-5">
         <div className="grid grid-cols-2 gap-5">
           <div>
-            <label className="block text-xs font-medium text-[#64748b] mb-2">First Name</label>
+            <label className="block text-xs font-medium text-[#64748b] mb-2">First Name <span className="text-[#f23e41]">*</span></label>
             <input
               type="text"
               value={form.firstName}
@@ -135,7 +135,7 @@ function DoctorForm({ onCancel, onSave, initialData }) {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-[#64748b] mb-2">Last Name</label>
+            <label className="block text-xs font-medium text-[#64748b] mb-2">Last Name <span className="text-[#f23e41]">*</span></label>
             <input
               type="text"
               value={form.lastName}
@@ -147,7 +147,7 @@ function DoctorForm({ onCancel, onSave, initialData }) {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-[#64748b] mb-2">Department</label>
+          <label className="block text-xs font-medium text-[#64748b] mb-2">Department <span className="text-[#f23e41]">*</span></label>
           <input
             type="text"
             value={form.department}

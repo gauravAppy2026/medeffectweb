@@ -59,6 +59,7 @@ export default function App() {
         <Route path="/sales-reps" element={<SalesRepresentatives />} />
         <Route path="/shipments" element={<ShipmentTracking />} />
         <Route path="/registrations" element={<RegisterUsers />} />
+        <Route path="/registrations/:id" element={<RegisterUsers />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/ivr-details" element={<IVRDetails />} />
         <Route path="/products" element={<Products />} />

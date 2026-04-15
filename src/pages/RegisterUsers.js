@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import userService from '../services/userService';
 import doctorService from '../services/doctorService';
@@ -49,7 +49,7 @@ function PractitionerMultiSelect({ doctors, selectedIds, onChange }) {
         className="w-full min-h-[50px] px-4 py-2 border border-[#d6dce8] rounded-[8px] text-sm text-[#24315d] cursor-pointer bg-white focus-within:ring-2 focus-within:ring-[#0089ff]/20 focus-within:border-[#0089ff] flex items-center flex-wrap gap-1.5"
       >
         {selectedDocs.length === 0 && (
-          <span className="text-[#94a3b8]">Select Practitioners</span>
+          <span className="text-[#94a3b8]">Select Providers</span>
         )}
         {selectedDocs.map((doc) => (
           <span
@@ -78,14 +78,14 @@ function PractitionerMultiSelect({ doctors, selectedIds, onChange }) {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search doctors..."
+              placeholder="Search providers..."
               className="w-full px-3 py-2 border border-[#e2e8f0] rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-[#0089ff]"
               autoFocus
             />
           </div>
           <div className="overflow-y-auto max-h-[180px]">
             {filtered.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-[#94a3b8]">No doctors found</div>
+              <div className="px-4 py-3 text-sm text-[#94a3b8]">No providers found</div>
             ) : (
               filtered.map((doc) => {
                 const isSelected = selectedIds.includes(doc._id);
@@ -119,8 +119,47 @@ function PractitionerMultiSelect({ doctors, selectedIds, onChange }) {
   );
 }
 
+// Password validation: 12+ chars with upper, lower, number, and special
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{12,}$/;
+function validatePassword(pwd) {
+  if (!pwd) return 'Password is required';
+  if (pwd.length < 12) return 'Password must be at least 12 characters';
+  if (!PASSWORD_REGEX.test(pwd)) return 'Password must include uppercase, lowercase, number, and special character (@$!%*?&#)';
+  return null;
+}
+
+// Accept MM/DD/YYYY or ISO; return ISO for backend. Return null if empty or invalid.
+function parseDob(dob) {
+  if (!dob || !dob.trim()) return null;
+  const trimmed = dob.trim();
+  // MM/DD/YYYY
+  const slashMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slashMatch) {
+    const [, mm, dd, yyyy] = slashMatch;
+    const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+    if (!isNaN(d.getTime())) return d.toISOString();
+  }
+  // Fallback to native parse (ISO, etc.)
+  const d = new Date(trimmed);
+  if (!isNaN(d.getTime())) return d.toISOString();
+  return 'invalid';
+}
+
+function formatDobForDisplay(isoOrDate) {
+  if (!isoOrDate) return '';
+  const d = new Date(isoOrDate);
+  if (isNaN(d.getTime())) return '';
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${mm}/${dd}/${yyyy}`;
+}
+
 export default function RegisterUsers() {
   const navigate = useNavigate();
+  const { id: editId } = useParams();
+  const isEdit = Boolean(editId);
+
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -134,10 +173,12 @@ export default function RegisterUsers() {
     zipCode: '',
     phone: '',
     licenseNumber: '',
+    isActive: true,
   });
   const [selectedDoctors, setSelectedDoctors] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(isEdit);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -148,6 +189,40 @@ export default function RegisterUsers() {
     }).catch(() => {});
   }, []);
 
+  // Load existing user in edit mode
+  useEffect(() => {
+    if (!isEdit) return;
+    let active = true;
+    (async () => {
+      try {
+        const res = await userService.getUserById(editId);
+        const u = res.data?.data || res.data;
+        if (!active || !u) return;
+        setForm({
+          firstName: u.firstName || '',
+          lastName: u.lastName || '',
+          email: u.email || '',
+          password: '',
+          dob: formatDobForDisplay(u.dateOfBirth),
+          gender: u.gender || '',
+          address: u.address?.street || '',
+          city: u.address?.city || '',
+          state: u.address?.state || '',
+          zipCode: u.address?.zipCode || '',
+          phone: u.phone || '',
+          licenseNumber: u.licenseNumber || '',
+          isActive: u.isActive !== false,
+        });
+        setSelectedDoctors(Array.isArray(u.assignedDoctors) ? u.assignedDoctors.map(String) : []);
+      } catch (err) {
+        setError(err.response?.data?.error || err.response?.data?.message || 'Failed to load user');
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [editId, isEdit]);
+
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     setError('');
@@ -155,64 +230,103 @@ export default function RegisterUsers() {
   };
 
   const handleSubmit = async () => {
-    if (!form.firstName || !form.lastName || !form.email) {
+    // Required fields
+    if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim()) {
       setError('First name, last name, and email are required');
       return;
     }
+
+    // Password: required on create, optional on edit (if provided must meet policy)
+    if (!isEdit) {
+      const pwdErr = validatePassword(form.password);
+      if (pwdErr) { setError(pwdErr); return; }
+    } else if (form.password) {
+      const pwdErr = validatePassword(form.password);
+      if (pwdErr) { setError(pwdErr); return; }
+    }
+
+    // DOB
+    const dobIso = parseDob(form.dob);
+    if (dobIso === 'invalid') {
+      setError('Date of Birth must be in MM/DD/YYYY format');
+      return;
+    }
+
     setSaving(true);
     setError('');
     try {
-      const payload = {
-        firstName: form.firstName,
-        lastName: form.lastName,
-        email: form.email,
-        password: form.password || 'TempPass123!',
-        role: 'sales_rep',
+      const basePayload = {
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        email: form.email.trim(),
         phone: form.phone,
         address: form.address,
         city: form.city,
         state: form.state,
         zipCode: form.zipCode,
         licenseNumber: form.licenseNumber,
-        dob: form.dob,
         gender: form.gender,
       };
-      if (selectedDoctors.length > 0) {
+      if (dobIso) basePayload.dob = dobIso;
+
+      if (isEdit) {
+        const payload = { ...basePayload, isActive: form.isActive };
+        if (form.password) payload.password = form.password;
         payload.assignedDoctors = selectedDoctors;
+        await userService.updateUser(editId, payload);
+        setSuccess('User updated successfully!');
+        setTimeout(() => navigate('/sales-reps'), 900);
+      } else {
+        const payload = {
+          ...basePayload,
+          password: form.password,
+          role: 'sales_rep',
+        };
+        if (selectedDoctors.length > 0) payload.assignedDoctors = selectedDoctors;
+        await userService.createUser(payload);
+        setSuccess(`User created successfully! Share these credentials with them: Email — ${form.email.trim()} / Password — ${form.password}`);
+        setForm({
+          firstName: '', lastName: '', email: '', password: '',
+          dob: '', gender: '', address: '', city: '', state: '',
+          zipCode: '', phone: '', licenseNumber: '', isActive: true,
+        });
+        setSelectedDoctors([]);
       }
-      await userService.createUser(payload);
-      setSuccess('User registered successfully!');
-      setForm({
-        firstName: '', lastName: '', email: '', password: '',
-        dob: '', gender: '', address: '', city: '', state: '',
-        zipCode: '', phone: '', licenseNumber: '',
-      });
-      setSelectedDoctors([]);
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || 'Failed to register user');
+      setError(err.response?.data?.error || err.response?.data?.message || 'Failed to save user');
     } finally {
       setSaving(false);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-60">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0089ff]" />
+      </div>
+    );
+  }
+
+  const requiredStar = <span className="text-[#f23e41]">*</span>;
+
   return (
     <div>
       <PageHeader
-        title="Register Sales Representative"
-        subtitle="Add a new sales representative to the system."
+        title={isEdit ? 'Edit Sales Representative' : 'Register Sales Representative'}
+        subtitle={isEdit ? 'Update sales representative details.' : 'Add a new sales representative to the system.'}
       />
 
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>
       )}
       {success && (
-        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-600">{success}</div>
+        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">{success}</div>
       )}
 
       <div className="space-y-5">
         <div className="grid grid-cols-2 gap-5">
           <div>
-            <label className="block text-xs font-medium text-[#64748b] mb-2">First Name</label>
+            <label className="block text-xs font-medium text-[#64748b] mb-2">First Name {requiredStar}</label>
             <input
               type="text"
               value={form.firstName}
@@ -222,7 +336,7 @@ export default function RegisterUsers() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-[#64748b] mb-2">Last Name</label>
+            <label className="block text-xs font-medium text-[#64748b] mb-2">Last Name {requiredStar}</label>
             <input
               type="text"
               value={form.lastName}
@@ -235,7 +349,7 @@ export default function RegisterUsers() {
 
         <div className="grid grid-cols-2 gap-5">
           <div>
-            <label className="block text-xs font-medium text-[#64748b] mb-2">Email</label>
+            <label className="block text-xs font-medium text-[#64748b] mb-2">Email {requiredStar}</label>
             <input
               type="email"
               value={form.email}
@@ -245,14 +359,20 @@ export default function RegisterUsers() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-[#64748b] mb-2">Password</label>
+            <label className="block text-xs font-medium text-[#64748b] mb-2">
+              Password {!isEdit && requiredStar}
+              {isEdit && <span className="text-[#94a3b8] font-normal"> (leave blank to keep existing)</span>}
+            </label>
             <input
               type="password"
               value={form.password}
               onChange={(e) => handleChange('password', e.target.value)}
-              placeholder="Enter password"
+              placeholder={isEdit ? 'New password (optional)' : 'Min 12 chars, A-a-1-!'}
               className="w-full h-[50px] px-4 border border-[#d6dce8] rounded-[8px] text-sm text-[#24315d] placeholder:text-[#24315d] focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff]"
             />
+            <p className="text-[11px] text-[#94a3b8] mt-1">
+              12+ chars with uppercase, lowercase, number & special character (@$!%*?&#)
+            </p>
           </div>
         </div>
 
@@ -264,7 +384,7 @@ export default function RegisterUsers() {
                 type="text"
                 value={form.dob}
                 onChange={(e) => handleChange('dob', e.target.value)}
-                placeholder="YYYY/MM/DD"
+                placeholder="MM/DD/YYYY"
                 className="w-full h-[50px] px-4 pr-10 border border-[#d6dce8] rounded-[8px] text-sm text-[#24315d] placeholder:text-[#24315d] focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff]"
               />
               <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[#64748b] text-[24px] pointer-events-none">
@@ -361,13 +481,28 @@ export default function RegisterUsers() {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-[#64748b] mb-2">Select Practitioner</label>
+          <label className="block text-xs font-medium text-[#64748b] mb-2">Assigned Providers</label>
           <PractitionerMultiSelect
             doctors={doctors}
             selectedIds={selectedDoctors}
             onChange={setSelectedDoctors}
           />
         </div>
+
+        {isEdit && (
+          <div className="flex items-center gap-3">
+            <input
+              id="isActive"
+              type="checkbox"
+              checked={form.isActive}
+              onChange={(e) => handleChange('isActive', e.target.checked)}
+              className="w-4 h-4 rounded border-[#d6dce8] text-[#0089ff] focus:ring-[#0089ff]"
+            />
+            <label htmlFor="isActive" className="text-sm font-medium text-[#24315d] select-none cursor-pointer">
+              Active
+            </label>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-end gap-3 mt-10">
