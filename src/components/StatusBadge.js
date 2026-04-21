@@ -4,7 +4,7 @@ const statusStyles = {
   pending: 'bg-[#fff8db] text-[#c25e16]',
   submitted: 'bg-[#fff8db] text-[#c25e16]',
   approved: 'bg-[#e6f1ff] text-[#2958e8]',
-  shipped: 'bg-[#eef1fd] text-[#363998]',
+  shipped: 'bg-[#defced] text-[#007a55]',
   in_transit: 'bg-[rgba(226,231,251,0.6)] text-[#363998]',
   completed: 'bg-[#defced] text-[#007a55]',
   delivered: 'bg-[#defced] text-[#007a55]',

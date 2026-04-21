@@ -64,9 +64,7 @@ function DoctorForm({ onCancel, onSave, initialData }) {
     firstName: initialData?.firstName || '',
     lastName: initialData?.lastName || '',
     department: initialData?.department || '',
-    gender: initialData?.gender || '',
     phone: initialData?.phone || '',
-    licenseNumber: initialData?.licenseNumber || '',
     address: typeof firstAddr === 'string' ? firstAddr : firstAddr?.street || '',
     city: (typeof firstAddr === 'object' ? firstAddr?.city : initialData?.city) || '',
     state: (typeof firstAddr === 'object' ? firstAddr?.state : initialData?.state) || '',
@@ -79,7 +77,7 @@ function DoctorForm({ onCancel, onSave, initialData }) {
 
   const handleSubmit = async () => {
     if (!form.firstName.trim() || !form.lastName.trim() || !form.department.trim()) {
-      setError('First name, last name, and department are required');
+      setError('First name, last name, and practice name are required');
       return;
     }
     setSaving(true);
@@ -98,9 +96,7 @@ function DoctorForm({ onCancel, onSave, initialData }) {
         department: form.department.trim(),
         addresses: hasAddress ? [addrObj] : [],
       };
-      if (form.gender) payload.gender = form.gender;
       if (form.phone.trim()) payload.phone = form.phone.trim();
-      if (form.licenseNumber.trim()) payload.licenseNumber = form.licenseNumber.trim();
       if (initialData?._id) {
         await doctorService.updateDoctor(initialData._id, payload);
       } else {
@@ -147,54 +143,23 @@ function DoctorForm({ onCancel, onSave, initialData }) {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-[#64748b] mb-2">Department <span className="text-[#f23e41]">*</span></label>
+          <label className="block text-xs font-medium text-[#64748b] mb-2">Practice Name <span className="text-[#f23e41]">*</span></label>
           <input
             type="text"
             value={form.department}
             onChange={(e) => handleChange('department', e.target.value)}
-            placeholder="Enter department (e.g. Cardiology)"
+            placeholder="Enter practice name"
             className="w-full h-[50px] px-4 border border-[#d6dce8] rounded-[8px] text-sm text-[#24315d] placeholder:text-[#24315d] focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff]"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-5">
-          <div>
-            <label className="block text-xs font-medium text-[#64748b] mb-2">Gender</label>
-            <div className="relative">
-              <select
-                value={form.gender}
-                onChange={(e) => handleChange('gender', e.target.value)}
-                className="w-full h-[50px] px-4 pr-10 border border-[#d6dce8] rounded-[8px] text-sm text-[#24315d] appearance-none focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff] bg-white"
-              >
-                <option value="">Select gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[#64748b] text-[20px] pointer-events-none">
-                expand_more
-              </span>
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-[#64748b] mb-2">Mobile Number</label>
-            <input
-              type="text"
-              value={form.phone}
-              onChange={(e) => handleChange('phone', e.target.value)}
-              placeholder="Enter mobile number"
-              className="w-full h-[50px] px-4 border border-[#d6dce8] rounded-[8px] text-sm text-[#24315d] placeholder:text-[#24315d] focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff]"
-            />
-          </div>
-        </div>
-
         <div>
-          <label className="block text-xs font-medium text-[#64748b] mb-2">License Number</label>
+          <label className="block text-xs font-medium text-[#64748b] mb-2">Mobile Number</label>
           <input
             type="text"
-            value={form.licenseNumber}
-            onChange={(e) => handleChange('licenseNumber', e.target.value)}
-            placeholder="Enter license number"
+            value={form.phone}
+            onChange={(e) => handleChange('phone', e.target.value)}
+            placeholder="Enter mobile number"
             className="w-full h-[50px] px-4 border border-[#d6dce8] rounded-[8px] text-sm text-[#24315d] placeholder:text-[#24315d] focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff]"
           />
         </div>
@@ -322,7 +287,7 @@ export default function Doctors() {
         <div className="bg-white border border-[#e2e8f0] rounded-[14px] shadow-sm overflow-hidden">
           <div className="bg-[rgba(226,232,240,0.2)] border-b border-[#e2e8f0] rounded-t-[14px]">
             <div className="grid grid-cols-[1fr_0.8fr_2fr_1fr_0.5fr] px-5 py-4">
-              {['PROVIDER NAME', 'DEPARTMENT', 'ADDRESS', 'PHONE', 'ACTIONS'].map((col) => (
+              {['PROVIDER NAME', 'PRACTICE NAME', 'ADDRESS', 'PHONE', 'ACTIONS'].map((col) => (
                 <span key={col} className="text-xs font-semibold text-[#64748b] uppercase">
                   {col}
                 </span>
@@ -341,7 +306,7 @@ export default function Doctors() {
                   <span className="text-xs font-medium text-[#0f172a]">
                     {doctor.firstName} {doctor.lastName}
                   </span>
-                  <span className="text-xs font-medium text-[#0f172a]">{doctor.department || 'General'}</span>
+                  <span className="text-xs font-medium text-[#0f172a]">{doctor.department || '—'}</span>
                   <div className="space-y-0">
                     {(doctor.addresses || []).map((addr, i) => {
                       const addrStr = typeof addr === 'string'

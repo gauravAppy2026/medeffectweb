@@ -488,7 +488,7 @@ export default function IVRDetails() {
     fetchData();
   }, [fetchData]);
 
-  const submittedCount = statusCounts.pending || statusCounts.submitted || 0;
+  const submittedCount = statusCounts.submitted || 0;
 
   return (
     <div>

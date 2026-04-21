@@ -249,13 +249,9 @@ function OrderDetailsModal({ order, onClose, onAction }) {
           </button>
         </div>
 
-        <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-center gap-2 mb-5">
           <p className="text-sm font-semibold text-[#0f172a]">{order.orderId}</p>
           <StatusBadge status={order.status} />
-        </div>
-        <div className="flex items-center gap-1 mb-5">
-          <span className="w-2 h-2 rounded-full bg-[#363998]" />
-          <span className="text-xs font-medium text-[#64748b] capitalize">Normal Priority</span>
         </div>
 
         <div className="mb-5">
@@ -556,8 +552,8 @@ export default function OrderManagement() {
       ) : (
         <div className="bg-white border border-[#e2e8f0] rounded-[14px] shadow-sm overflow-hidden">
           <div className="bg-[rgba(226,232,240,0.2)] border-b border-[#e2e8f0] rounded-t-[14px]">
-            <div className="grid grid-cols-[1fr_1.2fr_1fr_0.6fr_0.7fr_1fr_0.5fr] px-5 py-4">
-              {['ORDER ID', 'PRODUCT', 'SALES REP', 'QUANTITY', 'STATUS', 'DATE', 'ACTIONS'].map((col) => (
+            <div className="grid grid-cols-[0.9fr_1.1fr_1fr_1fr_0.9fr_0.8fr_0.7fr_0.9fr_0.4fr] px-5 py-4 gap-2">
+              {['ORDER ID', 'PRODUCT', 'PRACTICE', 'PATIENT', 'SALES REP', 'QTY', 'STATUS', 'DATE', 'ACTIONS'].map((col) => (
                 <span key={col} className="text-xs font-semibold text-[#64748b] uppercase">
                   {col}
                 </span>
@@ -572,28 +568,39 @@ export default function OrderManagement() {
                 const salesRepName = order.salesRep
                   ? `${order.salesRep.firstName || ''} ${order.salesRep.lastName || ''}`.trim()
                   : 'Unassigned';
+                const practiceName = order.doctor?.department || '—';
+                const patientName = order.patientName ||
+                  (order.patient
+                    ? `${order.patient.firstName || ''} ${order.patient.lastName || ''}`.trim()
+                    : '') || '—';
                 const date = order.createdAt
                   ? new Date(order.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
                   : '';
                 return (
                   <div
                     key={order._id}
-                    className="grid grid-cols-[1fr_1.2fr_1fr_0.6fr_0.7fr_1fr_0.5fr] px-5 py-4 items-center hover:bg-gray-50/50 transition-colors"
+                    className="grid grid-cols-[0.9fr_1.1fr_1fr_1fr_0.9fr_0.8fr_0.7fr_0.9fr_0.4fr] px-5 py-4 gap-2 items-center hover:bg-gray-50/50 transition-colors"
                   >
-                    <span className="text-xs font-medium text-[#0f172a]">{order.orderId}</span>
-                    <span className="text-xs font-medium text-[#0f172a]">{
+                    <span className="text-xs font-medium text-[#0f172a] truncate">{order.orderId}</span>
+                    <span className="text-xs font-medium text-[#0f172a] truncate" title={
+                      (order.lineItems && order.lineItems.length > 0)
+                        ? order.lineItems.map((li) => li.product?.name || 'N/A').join(', ')
+                        : (order.product?.name || 'N/A')
+                    }>{
                       (order.lineItems && order.lineItems.length > 0)
                         ? order.lineItems.map((li) => li.product?.name || 'N/A').join(', ')
                         : (order.product?.name || 'N/A')
                     }</span>
-                    <span className="text-xs font-medium text-[#0f172a]">{salesRepName}</span>
+                    <span className="text-xs font-medium text-[#0f172a] truncate" title={practiceName}>{practiceName}</span>
+                    <span className="text-xs font-medium text-[#0f172a] truncate" title={patientName}>{patientName}</span>
+                    <span className="text-xs font-medium text-[#0f172a] truncate" title={salesRepName}>{salesRepName}</span>
                     <span className="text-xs font-medium text-[#0f172a]">{
                       (order.lineItems && order.lineItems.length > 0)
                         ? order.lineItems.reduce((sum, li) => sum + (li.quantity || 0), 0)
                         : order.quantity
                     }</span>
                     <StatusBadge status={order.status} />
-                    <span className="text-xs font-medium text-[#0f172a]">{date}</span>
+                    <span className="text-xs font-medium text-[#0f172a] truncate">{date}</span>
                     <ActionsDropdown onView={() => setSelectedOrder(order)} />
                   </div>
                 );
