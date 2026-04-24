@@ -379,18 +379,24 @@ export default function RegisterUsers() {
         <div className="grid grid-cols-2 gap-5">
           <div>
             <label className="block text-xs font-medium text-[#64748b] mb-2">Date of Birth</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={form.dob}
-                onChange={(e) => handleChange('dob', e.target.value)}
-                placeholder="MM/DD/YYYY"
-                className="w-full h-[50px] px-4 pr-10 border border-[#d6dce8] rounded-[8px] text-sm text-[#24315d] placeholder:text-[#24315d] focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff]"
-              />
-              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[#64748b] text-[24px] pointer-events-none">
-                calendar_today
-              </span>
-            </div>
+            <input
+              type="date"
+              value={(() => {
+                // form.dob is stored as MM/DD/YYYY. The native date input needs YYYY-MM-DD.
+                const m = (form.dob || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                if (!m) return '';
+                const [, mm, dd, yyyy] = m;
+                return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+              })()}
+              onChange={(e) => {
+                const iso = e.target.value; // YYYY-MM-DD
+                if (!iso) { handleChange('dob', ''); return; }
+                const [yyyy, mm, dd] = iso.split('-');
+                handleChange('dob', `${mm}/${dd}/${yyyy}`);
+              }}
+              max={new Date().toISOString().slice(0, 10)}
+              className="w-full h-[50px] px-4 border border-[#d6dce8] rounded-[8px] text-sm text-[#24315d] placeholder:text-[#24315d] focus:outline-none focus:ring-2 focus:ring-[#0089ff]/20 focus:border-[#0089ff]"
+            />
           </div>
           <div>
             <label className="block text-xs font-medium text-[#64748b] mb-2">Gender</label>
