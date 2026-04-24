@@ -6,7 +6,7 @@ import IconButton from '../components/IconButton';
 import ivrService from '../services/ivrService';
 import api from '../services/api';
 
-const tabs = ['All', 'Submitted', 'Covered', 'Not Covered', 'Rejected'];
+const tabs = ['Submitted', 'Covered', 'Not Covered', 'Rejected', 'All'];
 
 const statusConfig = {
   pending: { label: 'Submitted', bg: 'bg-[#fff8db]', text: 'text-[#c25e16]' },
@@ -467,7 +467,7 @@ function IVRDetailsModal({ record, onClose, onAction }) {
 
 /* ─── Main Page ─── */
 export default function IVRDetails() {
-  const [activeTab, setActiveTab] = useState('All');
+  const [activeTab, setActiveTab] = useState('Submitted');
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [ivrData, setIvrData] = useState([]);
   const [loading, setLoading] = useState(true);

@@ -7,7 +7,7 @@ import StatusBadge from '../components/StatusBadge';
 import orderService from '../services/orderService';
 import productService from '../services/productService';
 
-const tabs = ['All', 'Submitted', 'Approved', 'Shipped', 'Cancelled'];
+const tabs = ['Submitted', 'Approved', 'Shipped', 'Cancelled', 'All'];
 
 /* ─── 3-dot Actions Dropdown (portal-based) ─── */
 function ActionsDropdown({ onView }) {
@@ -468,7 +468,7 @@ function OrderDetailsModal({ order, onClose, onAction }) {
 
 /* ─── Main Page ─── */
 export default function OrderManagement() {
-  const [activeTab, setActiveTab] = useState('All');
+  const [activeTab, setActiveTab] = useState('Submitted');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
